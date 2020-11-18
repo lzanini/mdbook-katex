@@ -1,4 +1,4 @@
-All equations are converted to html when the book is compiled, which allows for faster page rendering.
+All KaTex equations are converted to html when the book is compiled, which allows for faster page rendering.
 
 # Basic Usage
 
@@ -15,7 +15,7 @@ Then, add the KaTex preprocessor to your book.toml file
 command = "mdbook-katex"
 ```
 
-Once this is done, you can use KaTex expressions within your .md files, using `$` and `$$` delimiters.
+Once this is done, you can use KaTex expressions within your `.md` files, using `$` and `$$` delimiters.
 
 ```
 # Chapter 1
@@ -27,7 +27,7 @@ $$ \nabla f(x) \in \mathbb{R}^n $$
 
 # Macros
 
-Only KaTex macros with no argument are supported for now. They must be specified in a `txt` file, according to the following pattern
+Only KaTex macros with no argument are supported for now. They must be specified in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
@@ -40,6 +40,8 @@ Then, change the preprocessor command to tell it where the macros are located
 [preprocessor.katex]
 command = "mdbook-katex --macros=./macros.txt"
 ```
+
+You can then use these macros in any `.md` file.
 
 ```
 # Chapter 1
