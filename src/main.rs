@@ -105,6 +105,26 @@ impl KatexProcessor {
         html
     }
 
+    fn split_with_escape<'a>(&self, string: &'a str, separator: &str) -> Vec<String>{
+        let mut result = Vec::new();
+        let mut splits = string.split(separator);
+        let mut current_split = splits.next();
+        while let Some(split) = current_split  {
+            let mut result_split = String::from(split);
+            while let Some('\\') = current_split.unwrap().chars().last() {
+                result_split.pop();
+                result_split.push_str("$");
+                current_split = splits.next();
+                if let Some(split) = current_split {
+                    result_split.push_str(split);
+                }
+            }
+            result.push(result_split);
+            current_split = splits.next()
+        }
+        result
+    }
+
     fn render_separator(
         &self,
         string: &str,
@@ -114,7 +134,7 @@ impl KatexProcessor {
     ) -> String {
         let mut html = String::new();
         let mut k = 0;
-        for item in string.split(separator) {
+        for item in self.split_with_escape(&string, &separator) {
             if k % 2 == 1 {
                 let ops = katex::Opts::builder()
                     .display_mode(display)

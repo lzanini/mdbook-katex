@@ -20,14 +20,18 @@ Then, add the KaTex preprocessor to your `book.toml` file
 command = "mdbook-katex"
 ```
 
-Once this is done, you can use KaTex expressions within your `.md` files, using `$` and `$$` delimiters.
+Once this is done, you can use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. Use `\$` for a regular dollar symbol.
 
 ```
 # Chapter 1
 
-Here is an inline example, $ \pi(\theta) $, and here is an equation:
+Here is an inline example, $ \pi(\theta) $, 
+
+An equation:
 
 $$ \nabla f(x) \in \mathbb{R}^n $$
+
+And a regular \$ symbol.
 ```
 
 # Macros
@@ -51,6 +55,5 @@ You can now use these macros in any `.md` file.
 ```
 # Chapter 1
 
-Here is an inline example, $ \pi(\theta) $, and here is an equation:
-
-$$ \grad f(x) \in \Rn $$```
+$$ \grad f(x) \in \Rn $$
+```
