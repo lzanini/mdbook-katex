@@ -20,11 +20,7 @@ pub fn make_app() -> App<'static, 'static> {
                 .arg(Arg::with_name("renderer").required(true))
                 .about("Check whether a renderer is supported by this preprocessor"),
         )
-        .arg(
-            Arg::from_usage("--macros=[FILE]")
-                .takes_value(true)
-                .required(false),
-        )
+        .arg(Arg::from_usage("--macros=[FILE]").required(false))
         .about("Add the path to user-defined KaTex macros.")
 }
 
@@ -56,7 +52,6 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), Error> {
 fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
     let renderer = sub_args.value_of("renderer").expect("Required argument");
     let supported = pre.supports_renderer(&renderer);
-    // Signal whether the renderer is supported by exiting with 1 or 0.
     if supported {
         process::exit(0);
     } else {
@@ -163,17 +158,14 @@ impl Preprocessor for KatexProcessor {
 }
 
 fn load_as_string(path: &str) -> String {
-    // Create a path to the desired file
     let path = Path::new(path);
     let display = path.display();
 
-    // Open the path in read-only mode, returns `io::Result<File>`
     let mut file = match File::open(&path) {
         Err(why) => panic!("couldn't open {}: {}", display, why),
         Ok(file) => file,
     };
 
-    // Read the file contents into a string, returns `io::Result<usize>`
     let mut string = String::new();
     match file.read_to_string(&mut string) {
         Err(why) => panic!("couldn't read {}: {}", display, why),
