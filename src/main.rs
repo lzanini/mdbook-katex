@@ -14,14 +14,14 @@ use std::process;
 
 pub fn make_app() -> App<'static, 'static> {
     App::new("mdbook-katex")
-        .about("A preprocessor that converts KaTex equations into html.")
+        .about("A preprocessor that converts KaTex equations to HTML.")
         .subcommand(
             SubCommand::with_name("supports")
                 .arg(Arg::with_name("renderer").required(true))
                 .about("Check whether a renderer is supported by this preprocessor"),
         )
         .arg(Arg::from_usage("--macros=[FILE]").required(false))
-        .about("Add the path to user-defined KaTex macros.")
+        .about("Path to user-defined KaTex macros.")
 }
 
 fn main() {
@@ -79,16 +79,9 @@ impl KatexProcessor {
         if let Some(path) = &self.macros_path {
             let macro_str = load_as_string(&path);
             for couple in macro_str.split("\n") {
-                match couple.chars().next() {
-                    Some(c) => {
-                        if c == '\\' {
-                            let couple: Vec<&str> = couple.split(":").collect();
-                            map.insert(String::from(couple[0]), String::from(couple[1]));
-                        } else {
-                            ();
-                        }
-                    }
-                    None => (),
+                if let Some('\\') = couple.chars().next() {
+                    let couple: Vec<&str> = couple.split(":").collect();
+                    map.insert(String::from(couple[0]), String::from(couple[1]));
                 }
             }
         }
@@ -96,20 +89,25 @@ impl KatexProcessor {
     }
 
     fn render(&self, content: &str, macros: HashMap<String, String>) -> String {
+        // add katex css cdn
         let header = r#"<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">"#;
         let mut html = String::from(header);
         html.push_str("\n\n");
+        // render equations
         let content = self.render_separator(&content, "$$", true, macros.clone());
+        // render inline
         let content = self.render_separator(&content, "$", false, macros.clone());
+        // add rendered md content
         html.push_str(&content);
         html
     }
 
-    fn split_with_escape<'a>(&self, string: &'a str, separator: &str) -> Vec<String>{
+    // split string according to some separator <sep>, but ignore blackslashed \<sep>
+    fn split_with_escape<'a>(&self, string: &'a str, separator: &str) -> Vec<String> {
         let mut result = Vec::new();
         let mut splits = string.split(separator);
         let mut current_split = splits.next();
-        while let Some(split) = current_split  {
+        while let Some(split) = current_split {
             let mut result_split = String::from(split);
             while let Some('\\') = current_split.unwrap().chars().last() {
                 result_split.pop();
