@@ -17,7 +17,7 @@ command = "mdbook-katex"
 
 Once this is done, you can use KaTex expressions within your .md files, using `$` and `$$` delimiters.
 
-```md
+```
 # Chapter 1
 
 Here is an inline example, $ \pi(\theta) $, and here is an equation:
