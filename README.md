@@ -1,4 +1,5 @@
-All KaTex equations are converted to html when the book is compiled, which allows for faster page rendering.
+All Latex equations are converted to html when the book is compiled, which allows for faster page rendering.
+See [here](https://katex.org/docs/supported.html) for supported Latex functions.
 
 # Basic Usage
 
