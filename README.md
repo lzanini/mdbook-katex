@@ -2,7 +2,7 @@ A Preprocessor for [mdbook](https://github.com/rust-lang/mdBook), converting Lat
 
 
 <p align="center">
-  <img width="50%" height="50%" src="https://github.com/lzanini/mdbook-katex/blob/master/katex_demo.gif">
+  <img width="50%" height="50%" src="https://github.com/lzanini/mdbook-katex/blob/master/katex_mathjax.gif">
 </p>
 
 # Basic Usage
