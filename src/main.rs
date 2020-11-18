@@ -43,7 +43,6 @@ fn main() {
     let result = handle_preprocessing(&preprocessor);
     if let Err(e) = result {
         eprintln!("{}", e);
-        process::exit(1);
     }
 }
 
