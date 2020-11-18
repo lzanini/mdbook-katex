@@ -1,6 +1,9 @@
 A Preprocessor for [mdbook](https://github.com/rust-lang/mdBook), converting Latex equations to html at compile time. This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for supported Latex functions.
 
-<div style="text-align:center"><img src="https://github.com/lzanini/mdbook-katex/blob/master/katex_demo.gif" /></div>
+
+<p align="center">
+  <img width="35%" height="35%" src="https://github.com/lzanini/mdbook-katex/blob/master/katex_demo.gif">
+</p>
 
 # Basic Usage
 
