@@ -127,8 +127,12 @@ impl KatexProcessor {
                     .macros(macros.clone())
                     .build()
                     .unwrap();
-                let rendered = katex::render_with_opts(&item, ops).unwrap();
-                html.push_str(&rendered)
+                let result = katex::render_with_opts(&item, ops);
+                if let Ok(rendered) = result {
+                    html.push_str(&rendered)
+                } else {
+                    html.push_str(&item)
+                }
             } else {
                 html.push_str(&item)
             }
