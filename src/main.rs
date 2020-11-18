@@ -104,7 +104,7 @@ impl KatexProcessor {
         let header = r#"<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">"#;
         let mut html = String::from(header);
         html.push_str("\n\n");
-        let content = self.render_separator(content, "$$", true, macros.clone());
+        let content = self.render_separator(&content, "$$", true, macros.clone());
         let content = self.render_separator(&content, "$", false, macros.clone());
         html.push_str(&content);
         html
@@ -147,7 +147,7 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    fn run(&self, ctx: &PreprocessorContext, book: Book) -> Result<Book, Error> {
+    fn run(&self, _ctx: &PreprocessorContext, book: Book) -> Result<Book, Error> {
         let mut new_book = book.clone();
         new_book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
