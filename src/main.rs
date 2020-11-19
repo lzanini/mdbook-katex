@@ -141,9 +141,9 @@ impl KatexProcessor {
         let mut rendered_content = String::from(header);
         rendered_content.push_str("\n\n");
         // render display equations
-        let content = Self::render_between_delimiters(&raw_content, "$$", display_opts);
+        let content = Self::render_between_delimiters(&raw_content, "$$", display_opts, false);
         // render inline equations
-        let content = Self::render_between_delimiters(&content, "$", inline_opts);
+        let content = Self::render_between_delimiters(&content, "$", inline_opts, true);
         rendered_content.push_str(&content);
         rendered_content
     }
@@ -153,10 +153,11 @@ impl KatexProcessor {
         raw_content: &str,
         delimiters: &str,
         opts: &katex::Opts,
+        escape_backslash: bool,
     ) -> String {
         let mut rendered_content = String::new();
         let mut inside_delimiters = false;
-        for item in Self::split(&raw_content, &delimiters) {
+        for item in Self::split(&raw_content, &delimiters, escape_backslash) {
             if inside_delimiters {
                 // try to render equation
                 if let Ok(rendered) = katex::render_with_opts(&item, opts) {
@@ -174,23 +175,23 @@ impl KatexProcessor {
         rendered_content
     }
 
-    // TODO: return a vec of substrings Vec<&'a str> of the original string instead of creating a new one.
-    // See: https://rust.programmingpedia.net/en/knowledge-base/56921637/how-do-i-split-a-string-using-a-rust-regex-and-keep-the-delimiters-
-    fn split(string: &str, separator: &str) -> Vec<String> {
+    fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
         let mut result = Vec::new();
         let mut splits = string.split(separator);
         let mut current_split = splits.next();
         // iterate over splits
         while let Some(substring) = current_split {
             let mut result_split = String::from(substring);
+            if escape_backslash {
             // while the current split ends with a backslash
-            while let Some('\\') = current_split.unwrap().chars().last() {
-                // removes the backslash, add the separator back, and add the next split
-                result_split.pop();
-                result_split.push_str(separator);
-                current_split = splits.next();
-                if let Some(split) = current_split {
-                    result_split.push_str(split);
+                while let Some('\\') = current_split.unwrap().chars().last() {
+                    // removes the backslash, add the separator back, and add the next split
+                    result_split.pop();
+                    result_split.push_str(separator);
+                    current_split = splits.next();
+                    if let Some(split) = current_split {
+                        result_split.push_str(split);
+                    }
                 }
             }
             result.push(result_split);
