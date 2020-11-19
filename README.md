@@ -20,6 +20,7 @@ Add the Katex preprocessor to your `book.toml` file
 ```
 
 You can then use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. 
+
 Use `\$` for a regular dollar symbol.
 
 ```
