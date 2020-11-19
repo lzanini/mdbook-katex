@@ -17,7 +17,6 @@ Then, add the KaTex preprocessor to your `book.toml` file
 
 ```toml
 [preprocessor.katex]
-command = "mdbook-katex"
 ```
 
 Once this is done, you can use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. Use `\$` for a regular dollar symbol.
@@ -47,7 +46,7 @@ Then, change the preprocessor command in your `book.toml` to tell it where the m
 
 ```toml
 [preprocessor.katex]
-command = "mdbook-katex --macros=path/to/macros.txt"
+macros = "path/to/macros.txt"
 ```
 
 You can now use these macros in any `.md` file.
