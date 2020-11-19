@@ -2,38 +2,39 @@ A Rust pre-processor for [mdBook](https://github.com/rust-lang/mdBook), converti
 
 
 <p align="center">
-  <img width="70%" height="70%" src="https://github.com/lzanini/mdbook-katex/blob/master/katex_mathjax.gif">
+  <img width="70%" height="70%" src="https://raw.githubusercontent.com/lzanini/mdbook-katex/master/katex_mathjax.gif">
 </p>
 
-# Basic Usage
+## Usage
 
-First, install the crate
+Install the crate
 
 ```
 cargo install mdbook-katex
 ```
 
-Then, add the KaTex preprocessor to your `book.toml` file
+Add the Katex preprocessor to your `book.toml` file
 
 ```toml
 [preprocessor.katex]
 ```
 
-Once this is done, you can use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. Use `\$` for a regular dollar symbol.
+You can then use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. 
+Use `\$` for a regular dollar symbol.
 
 ```
 # Chapter 1
 
 Here is an inline example, $ \pi(\theta) $, 
 
-An equation:
+an equation,
 
-$$ \nabla f(x) \in \mathbb{R}^n $$
+$$ \nabla f(x) \in \mathbb{R}^n, $$
 
-And a regular \$ symbol.
+and a regular \$ symbol.
 ```
 
-# Macros
+## Macros
 
 Macros with no arguments are supported. They must be defined in a `.txt` file, according to the following pattern
 
@@ -42,14 +43,14 @@ Macros with no arguments are supported. They must be defined in a `.txt` file, a
 \Rn:{\mathbb{R}^n}
 ```
 
-Then, specify the macros location in `book.toml`
+Then, specify the macros location in your `book.toml`
 
 ```toml
 [preprocessor.katex]
 macros = "path/to/macros.txt"
 ```
 
-You can now use these macros in any `.md` file.
+You can now use these macros in any `.md` file
 
 ```
 # Chapter 1
