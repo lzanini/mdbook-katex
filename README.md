@@ -1,4 +1,4 @@
-A Rust pre-processor for [mdbook](https://github.com/rust-lang/mdBook), converting Latex equations to html at compile time. This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for supported Latex functions.
+A Rust pre-processor for [mdBook](https://github.com/rust-lang/mdBook), converting Latex equations to HTML at compile time. This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported Latex functions.
 
 
 <p align="center">
@@ -35,14 +35,14 @@ And a regular \$ symbol.
 
 # Macros
 
-Macros with no arguments are supported. They must be specified in a `.txt` file, according to the following pattern
+Macros with no arguments are supported. They must be defined in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
 \Rn:{\mathbb{R}^n}
 ```
 
-Then, change the preprocessor command in your `book.toml` to tell it where the macros are located 
+Then, specify the macros location in `book.toml`
 
 ```toml
 [preprocessor.katex]
