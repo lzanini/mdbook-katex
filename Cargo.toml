@@ -1,6 +1,6 @@
 [package]
 name = "mdbook-katex"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["Lucas Zanini <zanini.lcs@gmail.com>"]
 edition = "2018"
 description = "Mdbook preprocessor converting Katex equations to html."
