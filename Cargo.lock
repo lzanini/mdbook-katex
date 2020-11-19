@@ -881,6 +881,7 @@ dependencies = [
  "katex",
  "mdbook",
  "serde_json",
+ "toml",
 ]
 
 [[package]]

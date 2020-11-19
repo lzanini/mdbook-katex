@@ -1,4 +1,5 @@
 extern crate katex;
+extern crate toml;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -20,19 +21,11 @@ pub fn make_app() -> App<'static, 'static> {
                 .arg(Arg::with_name("renderer").required(true))
                 .about("Check whether a renderer is supported by this preprocessor"),
         )
-        .arg(Arg::from_usage("--macros=[FILE]").required(false))
-        .about("Path to user-defined KaTex macros.")
 }
 
 fn main() {
     let matches = make_app().get_matches();
-    let macros_path;
-    if let Some(path) = matches.value_of("macros") {
-        macros_path = Some(String::from(path));
-    } else {
-        macros_path = None;
-    }
-    let preprocessor = KatexProcessor::new(macros_path);
+    let preprocessor = KatexProcessor::new();
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         handle_supports(&preprocessor, sub_args);
     }
@@ -59,24 +52,22 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
     }
 }
 
-struct KatexProcessor {
-    macros_path: Option<String>,
-}
+struct KatexProcessor;
 
 impl KatexProcessor {
-    fn new(macros_path: Option<String>) -> Self {
-        Self { macros_path }
+    fn new() -> Self {
+        Self
     }
 
     // Take as input the content of a Chapter, and returns a String corresponding to the new content.
-    fn process(&self, content: &str) -> String {
-        let macros = self.load_macros();
+    fn process(&self, content: &str, macros_path: &Option<String>) -> String {
+        let macros = self.load_macros(macros_path);
         self.render(&content, macros)
     }
 
-    fn load_macros(&self) -> HashMap<String, String> {
+    fn load_macros(&self, macros_path: &Option<String>) -> HashMap<String, String> {
         let mut map = HashMap::new();
-        if let Some(path) = &self.macros_path {
+        if let Some(path) = macros_path {
             let macro_str = load_as_string(&path);
             for couple in macro_str.split("\n") {
                 if let Some('\\') = couple.chars().next() {
@@ -160,11 +151,17 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    fn run(&self, _ctx: &PreprocessorContext, book: Book) -> Result<Book, Error> {
+    fn run(&self, ctx: &PreprocessorContext, book: Book) -> Result<Book, Error> {
+        let mut macros_path = None;
+        if let Some(config) = ctx.config.get_preprocessor(KatexProcessor.name()) {
+            if let Some(toml::value::Value::String(macros_value)) = config.get("macros") {
+                macros_path = Some(String::from(macros_value));
+            }
+        }
         let mut new_book = book.clone();
         new_book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                chapter.content = self.process(&chapter.content)
+                chapter.content = self.process(&chapter.content, &macros_path)
             }
         });
         Ok(new_book)
