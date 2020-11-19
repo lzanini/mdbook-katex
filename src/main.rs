@@ -15,7 +15,7 @@ use std::process;
 
 pub fn make_app() -> App<'static, 'static> {
     App::new("mdbook-katex")
-        .about("A preprocessor that converts KaTex equations to HTML.")
+        .about("A preprocessor that renders KaTex equations to HTML.")
         .subcommand(
             SubCommand::with_name("supports")
                 .arg(Arg::with_name("renderer").required(true))
@@ -25,18 +25,28 @@ pub fn make_app() -> App<'static, 'static> {
 
 fn main() {
     let matches = make_app().get_matches();
-    let preprocessor = KatexProcessor::new();
+    let preprocessor = KatexProcessor;
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         handle_supports(&preprocessor, sub_args);
     }
-    let result = handle_preprocessing(&preprocessor);
-    if let Err(e) = result {
+    if let Err(e) = handle_preprocessing(&preprocessor) {
         eprintln!("{}", e);
     }
 }
 
 fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), Error> {
     let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
+
+    if ctx.mdbook_version != mdbook::MDBOOK_VERSION {
+        eprintln!(
+            "Warning: The {} plugin was built against version {} of mdbook, \
+             but we're being called from version {}",
+            pre.name(),
+            mdbook::MDBOOK_VERSION,
+            ctx.mdbook_version
+        );
+    }
+
     let processed_book = pre.run(&ctx, book)?;
     serde_json::to_writer(io::stdout(), &processed_book)?;
     Ok(())
@@ -54,22 +64,62 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> ! {
 
 struct KatexProcessor;
 
+impl Preprocessor for KatexProcessor {
+    fn name(&self) -> &str {
+        "katex"
+    }
+
+    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+        let (inline_opts, display_opts) = self.build_opts(ctx);
+        book.for_each_mut(|item| {
+            if let BookItem::Chapter(chapter) = item {
+                chapter.content =
+                    self.process_chapter(&chapter.content, &inline_opts, &display_opts)
+            }
+        });
+        Ok(book)
+    }
+
+    fn supports_renderer(&self, renderer: &str) -> bool {
+        renderer == "html"
+    }
+}
+
 impl KatexProcessor {
-    fn new() -> Self {
-        Self
+    fn build_opts(&self, ctx: &PreprocessorContext) -> (katex::Opts, katex::Opts) {
+        // load macros as a HashMap
+        let macros = Self::load_macros(ctx);
+        // inline rendering options
+        let inline_opts = katex::Opts::builder()
+            .display_mode(false)
+            .output_type(katex::OutputType::Html)
+            .macros(macros.clone())
+            .build()
+            .unwrap();
+        // display rendering options
+        let display_opts = katex::Opts::builder()
+            .display_mode(true)
+            .output_type(katex::OutputType::Html)
+            .macros(macros)
+            .build()
+            .unwrap();
+        (inline_opts, display_opts)
     }
 
-    // Take as input the content of a Chapter, and returns a String corresponding to the new content.
-    fn process(&self, content: &str, macros_path: &Option<String>) -> String {
-        let macros = self.load_macros(macros_path);
-        self.render(&content, macros)
-    }
-
-    fn load_macros(&self, macros_path: &Option<String>) -> HashMap<String, String> {
+    fn load_macros(ctx: &PreprocessorContext) -> HashMap<String, String> {
+        // get macros path from context
+        let mut macros_path = None;
+        if let Some(config) = ctx.config.get_preprocessor("katex") {
+            if let Some(toml::value::Value::String(macros_value)) = config.get("macros") {
+                macros_path = Some(Path::new(macros_value));
+            }
+        }
+        // load macros as a HashMap
         let mut map = HashMap::new();
         if let Some(path) = macros_path {
             let macro_str = load_as_string(&path);
             for couple in macro_str.split("\n") {
+                // only consider lines starting with a backslash
                 if let Some('\\') = couple.chars().next() {
                     let couple: Vec<&str> = couple.split(":").collect();
                     map.insert(String::from(couple[0]), String::from(couple[1]));
@@ -79,30 +129,65 @@ impl KatexProcessor {
         map
     }
 
-    fn render(&self, content: &str, macros: HashMap<String, String>) -> String {
-        // add katex css cdn
+    // render Katex equations in HTML, and add the Katex CSS
+    fn process_chapter(
+        &self,
+        raw_content: &str,
+        inline_opts: &katex::Opts,
+        display_opts: &katex::Opts,
+    ) -> String {
+        // add katex css
         let header = r#"<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">"#;
-        let mut html = String::from(header);
-        html.push_str("\n\n");
-        // render equations
-        let content = self.render_separator(&content, "$$", true, macros.clone());
-        // render inline
-        let content = self.render_separator(&content, "$", false, macros.clone());
-        // add rendered md content
-        html.push_str(&content);
-        html
+        let mut rendered_content = String::from(header);
+        rendered_content.push_str("\n\n");
+        // render display equations
+        let content = Self::render_between_delimiters(&raw_content, "$$", display_opts);
+        // render inline equations
+        let content = Self::render_between_delimiters(&content, "$", inline_opts);
+        rendered_content.push_str(&content);
+        rendered_content
     }
 
-    // split string according to some separator <sep>, but ignore blackslashed \<sep>
-    fn split_with_escape<'a>(&self, string: &'a str, separator: &str) -> Vec<String> {
+    // render equations between given delimiters, with specified options
+    fn render_between_delimiters(
+        raw_content: &str,
+        delimiters: &str,
+        opts: &katex::Opts,
+    ) -> String {
+        let mut rendered_content = String::new();
+        let mut inside_delimiters = false;
+        for item in Self::split(&raw_content, &delimiters) {
+            if inside_delimiters {
+                // try to render equation
+                if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+                    rendered_content.push_str(&rendered)
+                // if rendering fails, keep the unrendered equation
+                } else {
+                    rendered_content.push_str(&item)
+                }
+            // outside delimiters
+            } else {
+                rendered_content.push_str(&item)
+            }
+            inside_delimiters = !inside_delimiters;
+        }
+        rendered_content
+    }
+
+    // TODO: return a vec of substrings Vec<&'a str> of the original string instead of creating a new one.
+    // See: https://rust.programmingpedia.net/en/knowledge-base/56921637/how-do-i-split-a-string-using-a-rust-regex-and-keep-the-delimiters-
+    fn split(string: &str, separator: &str) -> Vec<String> {
         let mut result = Vec::new();
         let mut splits = string.split(separator);
         let mut current_split = splits.next();
-        while let Some(split) = current_split {
-            let mut result_split = String::from(split);
+        // iterate over splits
+        while let Some(substring) = current_split {
+            let mut result_split = String::from(substring);
+            // while the current split ends with a backslash
             while let Some('\\') = current_split.unwrap().chars().last() {
+                // removes the backslash, add the separator back, and add the next split
                 result_split.pop();
-                result_split.push_str("$");
+                result_split.push_str(separator);
                 current_split = splits.next();
                 if let Some(split) = current_split {
                     result_split.push_str(split);
@@ -113,67 +198,9 @@ impl KatexProcessor {
         }
         result
     }
-
-    fn render_separator(
-        &self,
-        string: &str,
-        separator: &str,
-        display: bool,
-        macros: HashMap<String, String>,
-    ) -> String {
-        let mut html = String::new();
-        let mut k = 0;
-        for item in self.split_with_escape(&string, &separator) {
-            if k % 2 == 1 {
-                let ops = katex::Opts::builder()
-                    .display_mode(display)
-                    .output_type(katex::OutputType::Html)
-                    .macros(macros.clone())
-                    .build()
-                    .unwrap();
-                let result = katex::render_with_opts(&item, ops);
-                if let Ok(rendered) = result {
-                    html.push_str(&rendered)
-                } else {
-                    html.push_str(&item)
-                }
-            } else {
-                html.push_str(&item)
-            }
-            k += 1;
-        }
-        html
-    }
 }
 
-impl Preprocessor for KatexProcessor {
-    fn name(&self) -> &str {
-        "katex"
-    }
-
-    fn run(&self, ctx: &PreprocessorContext, book: Book) -> Result<Book, Error> {
-        let mut macros_path = None;
-        if let Some(config) = ctx.config.get_preprocessor(KatexProcessor.name()) {
-            if let Some(toml::value::Value::String(macros_value)) = config.get("macros") {
-                macros_path = Some(String::from(macros_value));
-            }
-        }
-        let mut new_book = book.clone();
-        new_book.for_each_mut(|item| {
-            if let BookItem::Chapter(chapter) = item {
-                chapter.content = self.process(&chapter.content, &macros_path)
-            }
-        });
-        Ok(new_book)
-    }
-
-    fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer == "html"
-    }
-}
-
-fn load_as_string(path: &str) -> String {
-    let path = Path::new(path);
+fn load_as_string(path: &Path) -> String {
     let display = path.display();
 
     let mut file = match File::open(&path) {

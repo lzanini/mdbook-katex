@@ -1,4 +1,4 @@
-A Rust pre-processor for [mdBook](https://github.com/rust-lang/mdBook), converting Latex equations to HTML at compile time. This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported Latex functions.
+A Rust preprocessor for [mdBook](https://github.com/rust-lang/mdBook), converting Latex equations to HTML at compile time. This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported Latex functions.
 
 
 <p align="center">
@@ -19,9 +19,7 @@ Add the Katex preprocessor to your `book.toml` file
 [preprocessor.katex]
 ```
 
-You can then use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. 
-
-Use `\$` for a regular dollar symbol.
+You can then use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. Use `\$` for a regular dollar symbol.
 
 ```
 # Chapter 1
