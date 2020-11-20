@@ -35,11 +35,11 @@ and a regular \$ symbol.
 
 ## Macros
 
-Macros with no arguments are supported. They must be defined in a `.txt` file, according to the following pattern
+Macros must be defined in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
-\Rn:{\mathbb{R}^n}
+\R:{\mathbb{R}^{#1 \times #2}}
 ```
 
 Then, specify the macros location in your `book.toml`
@@ -54,5 +54,5 @@ You can now use these macros in any `.md` file
 ```
 # Chapter 1
 
-$$ \grad f(x) \in \Rn $$
+$$ \grad f(x) \in \R{n}{p} $$
 ```
