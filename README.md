@@ -15,13 +15,13 @@ Install the crate
 cargo install mdbook-katex
 ```
 
-Add the Katex preprocessor to your `book.toml` file
+Add the preprocessor to your `book.toml` file
 
 ```toml
 [preprocessor.katex]
 ```
 
-You can then use KaTex expressions within your `.md` files, using `$` and `$$` delimiters. Use `\$` for a regular dollar symbol.
+Use `$` and `$$` delimiters for inline / display equations within your `.md` files. Use `\$` for a regular dollar symbol.
 
 ```
 # Chapter 1
@@ -51,7 +51,7 @@ Then, specify the macros location in your `book.toml`
 macros = "path/to/macros.txt"
 ```
 
-You can now use these macros in any `.md` file
+You can now use these macros in your `.md` files
 
 ```
 # Chapter 1
