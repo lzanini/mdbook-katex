@@ -1,10 +1,10 @@
-A Rust preprocessor for [mdBook](https://github.com/rust-lang/mdBook), converting Latex equations to HTML at compile time. It allows for very fast page loading, compared to rendering the equations in the browser.
+A Rust preprocessor for [mdBook](https://github.com/rust-lang/mdBook) rendering LaTex equations to HTML. It allows for very fast page loading, compared to rendering equations in the browser.
 
 This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported Latex functions.
 
 
 <p align="center">
-  <img width="70%" height="70%" src="https://raw.githubusercontent.com/lzanini/mdbook-katex/master/katex_mathjax.gif">
+  <img width="75%" height="75%" src="https://raw.githubusercontent.com/lzanini/mdbook-katex/master/katex_mathjax.gif">
 </p>
 
 ## Usage
