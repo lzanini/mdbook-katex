@@ -121,7 +121,7 @@ impl KatexProcessor {
             for couple in macro_str.split("\n") {
                 // only consider lines starting with a backslash
                 if let Some('\\') = couple.chars().next() {
-                    let couple: Vec<&str> = couple.split(":").collect();
+                    let couple: Vec<&str> = couple.splitn(2, ":").collect();
                     map.insert(String::from(couple[0]), String::from(couple[1]));
                 }
             }
