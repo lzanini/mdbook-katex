@@ -738,9 +738,9 @@ checksum = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
 
 [[package]]
 name = "katex"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acf3c5bac704be04f2784944aa8c9fab1791ab474ab8e42123cbb6dc6d13fab2"
+checksum = "65fa2c8136010ba9dc9bf1e860c6c2a748c48785540f373fb83c928839e53e46"
 dependencies = [
  "derive_builder",
  "quick-js",
@@ -875,7 +875,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-katex"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "clap",
  "katex",
