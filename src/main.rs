@@ -4,10 +4,9 @@ extern crate toml;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
+use mdbook_katex::KatexProcessor;
 use std::io;
 use std::process;
-use mdbook_katex::KatexProcessor;
-
 
 pub fn make_app() -> App<'static, 'static> {
     App::new("mdbook-katex")
