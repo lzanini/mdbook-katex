@@ -36,16 +36,16 @@ and a regular \$ symbol.
 
 Latex equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
-## Macros
+## Custom macros
 
-Latex macros are supported. They must be defined in a `.txt` file, according to the following pattern
+Custom Latex macros must be defined in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
 \R:{\mathbb{R}^{#1 \times #2}}
 ```
 
-You must specify the path of this file as an option under the `preprocessot.katex` table of your `book.toml` file.
+You also need to specify the path of this file in your `book.toml` as follows
 
 ```toml
 [preprocessor.katex]
