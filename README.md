@@ -1,27 +1,26 @@
-A Rust preprocessor for [mdBook](https://github.com/rust-lang/mdBook) rendering LaTex equations to HTML. It allows for very fast page loading, compared to rendering equations in the browser.
+A preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML when building the book. It allows for very fast page loading, compared to rendering equations in the browser.
 
 This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported Latex functions.
-
 
 <p align="center">
   <img width="75%" height="75%" src="https://raw.githubusercontent.com/lzanini/mdbook-katex/master/katex_mathjax.gif">
 </p>
 
-## Usage
+## Getting Started
 
-Install the crate
+First, install the `mdbook-katek` crate
 
 ```
 cargo install mdbook-katex
 ```
 
-Add the preprocessor to your `book.toml` file
+Then, add the following line to your `book.toml` file
 
 ```toml
 [preprocessor.katex]
 ```
 
-Use `$` and `$$` delimiters for inline / display equations within your `.md` files. Use `\$` for a regular dollar symbol.
+You can now use `$` and `$$` delimiters for inline / display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backlash `\$`.
 
 ```
 # Chapter 1
@@ -35,23 +34,25 @@ $$ \nabla f(x) \in \mathbb{R}^n, $$
 and a regular \$ symbol.
 ```
 
+Latex equations will be pre-rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
+
 ## Macros
 
-Macros must be defined in a `.txt` file, according to the following pattern
+Latex macros are supported. They must be defined in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
 \R:{\mathbb{R}^{#1 \times #2}}
 ```
 
-Then, specify the macros location in your `book.toml`
+You must specify the path of this file as an option under the `preprocessot.katex` table of your `book.toml` file.
 
 ```toml
 [preprocessor.katex]
 macros = "path/to/macros.txt"
 ```
 
-You can now use these macros in your `.md` files
+These macros can then be used in your `.md` files
 
 ```
 # Chapter 1
