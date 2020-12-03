@@ -8,7 +8,7 @@ This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 ## Getting Started
 
-First, install the `mdbook-katek` crate
+First, install the `mdbook-katex` crate
 
 ```
 cargo install mdbook-katex
