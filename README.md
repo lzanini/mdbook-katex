@@ -45,7 +45,7 @@ Custom LaTex macros must be defined in a `.txt` file, according to the following
 \R:{\mathbb{R}^{#1 \times #2}}
 ```
 
-You also need to specify the path of this file in your `book.toml` as follows
+You need to specify the path of this file in your `book.toml` as follows
 
 ```toml
 [preprocessor.katex]
