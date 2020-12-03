@@ -1,6 +1,6 @@
 A preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
 
-This preprocessor uses the [Katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported Latex functions.
+This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTex functions.
 
 <p align="center">
   <img width="75%" height="75%" src="https://raw.githubusercontent.com/lzanini/mdbook-katex/master/katex_mathjax.gif">
@@ -20,7 +20,7 @@ Then, add the following line to your `book.toml` file
 [preprocessor.katex]
 ```
 
-You can now use `$` and `$$` delimiters for inline / display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backlash `\$`.
+You can now use `$` and `$$` delimiters for inline and display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backslash `\$`.
 
 ```
 # Chapter 1
@@ -38,7 +38,7 @@ Latex equations will be rendered as HTML when running `mdbook build` or `mdbook 
 
 ## Custom macros
 
-Custom Latex macros must be defined in a `.txt` file, according to the following pattern
+Custom LaTex macros must be defined in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
