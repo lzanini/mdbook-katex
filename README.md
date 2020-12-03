@@ -34,7 +34,7 @@ $$ \nabla f(x) \in \mathbb{R}^n, $$
 and a regular \$ symbol.
 ```
 
-Latex equations will be pre-rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
+Latex equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
 ## Macros
 
