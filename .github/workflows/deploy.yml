@@ -1,0 +1,141 @@
+name: deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+
+  linux-binaries:
+
+    strategy:
+      matrix:
+        target:
+         - x86_64-unknown-linux-gnu
+         - x86_64-unknown-linux-musl
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install musl tools
+      if: matrix.target == 'x86_64-unknown-linux-musl'
+      run: |
+        sudo apt-get install musl-tools
+
+    - name: Install ${{ matrix.target }} target
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: ${{ matrix.target }}
+        override: true
+
+    - name: Build mbdook-katex
+      run: |
+        cargo build --release --target ${{ matrix.target }}
+
+    - name: Strip mdbook-katex
+      run: |
+        strip target/${{ matrix.target }}/release/mdbook-katex
+
+    - name: Get the version
+      id: tagName
+      run: |
+        VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+        echo "::set-output name=version::$VERSION"
+
+    - name: Create tar
+      run: |
+        TAR_FILE=mdbook-katex-v${{ steps.tagName.outputs.version }}
+        tar -czvf $TAR_FILE-${{ matrix.target }}.tar.gz \
+                  target/${{ matrix.target }}/release/mdbook-katex
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v2
+      with:
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-${{ matrix.target }}.tar.gz
+
+  macos-binary:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Build mdbook-katex
+      run: |
+        cargo build --release
+
+    - name: Strip mdbook-katex
+      run: |
+        strip target/release/mdbook-katex
+
+    - name: Get the version
+      id: tagName
+      run: |
+        VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+        echo "::set-output name=version::$VERSION"
+
+    - name: Create tar
+      run: |
+        TAR_PREFIX=mdbook-katex-v${{ steps.tagName.outputs.version }}
+        tar -czvf $TAR_PREFIX-x86_64-apple-darwin.tar.gz \
+                  target/release/mdbook-katex
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v2
+      with:
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+
+  deploy:
+
+    needs: [linux-binaries, macos-binary]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: artifact
+
+    - name: Install Rust stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Create Cargo.lock
+      run: |
+        cargo update
+
+    - name: Get the version
+      id: tagName
+      run: |
+        VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+        echo "::set-output name=version::$VERSION"
+
+    - name: Create a release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: v${{ steps.tagName.outputs.version }}
+        files: |
+          Cargo.lock
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
