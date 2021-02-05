@@ -8,7 +8,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-katex = "0.3.1"
+katex = "0.3.2"
 clap = "2.33.3"
 mdbook = "0.4.4"
 serde_json = "1.0.59"
