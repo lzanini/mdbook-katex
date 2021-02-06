@@ -3,7 +3,7 @@ A preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering 
 This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTex functions.
 
 <p align="center">
-  <img width="75%" height="75%" src="https://raw.githubusercontent.com/lzanini/mdbook-katex/master/katex_mathjax.gif">
+  <img width="75%" height="75%" src="https://user-images.githubusercontent.com/71221149/107123378-84acbf80-689d-11eb-811d-26f20e32556c.gif">
 </p>
 
 ## Getting Started
