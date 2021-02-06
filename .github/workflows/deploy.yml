@@ -7,6 +7,56 @@ on:
 
 jobs:
 
+  windows-binary:
+
+    runs-on: windows-latest
+
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-pc-windows-gnu # Not msvc because of quickjs-rs dependency
+        override: true
+
+    - name: Setup msys64 and mingw64
+      run: |
+        $Paths = "C:\msys64\mingw64\bin;C:\msys64\usr\bin"
+        echo "$Paths" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "CARGO_BUILD_TARGET=x86_64-pc-windows-gnu" >> $GITHUB_ENV
+
+    - name: Build mdbook-katex
+      run: |
+        cargo build --release --target x86_64-pc-windows-gnu
+
+    - name: Strip mdbook-katex
+      run: |
+        strip target/x86_64-pc-windows-gnu/release/mdbook-katex.exe
+
+    - name: Get the version
+      shell: bash
+      id: tagName
+      run: |
+        VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+        echo "::set-output name=version::$VERSION"
+
+    - name: Create zip
+      run: |
+        $ZIP_PREFIX = "mdbook-katex-v${{ steps.tagName.outputs.version }}"
+        7z a "$ZIP_PREFIX-x86_64-pc-windows-gnu.zip" `
+             "./target/x86_64-pc-windows-gnu/release/mdbook-katex.exe"
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v2
+      with:
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.zip
+
   linux-binaries:
 
     strategy:
@@ -99,7 +149,7 @@ jobs:
 
   deploy:
 
-    needs: [linux-binaries, macos-binary]
+    needs: [windows-binary, linux-binaries, macos-binary]
 
     runs-on: ubuntu-latest
 
@@ -135,6 +185,7 @@ jobs:
         files: |
           Cargo.lock
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.zip
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
       env:
