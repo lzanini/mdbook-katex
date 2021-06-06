@@ -1,11 +1,11 @@
 extern crate log;
 
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use toml;
-use serde_derive::{Deserialize, Serialize};
 
 use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
@@ -24,7 +24,7 @@ pub struct KatexConfig {
     pub max_expand: i32,
     pub trust: bool,
     // other options
-    pub static_css: bool
+    pub static_css: bool,
 }
 
 impl Default for KatexConfig {
@@ -41,7 +41,7 @@ impl Default for KatexConfig {
             max_expand: 1000,
             trust: false,
             // other options
-            static_css: true
+            static_css: true,
         }
     }
 }
@@ -65,7 +65,7 @@ impl Preprocessor for KatexProcessor {
                     &chapter.content,
                     &inline_opts,
                     &display_opts,
-                    &stylesheet_header
+                    &stylesheet_header,
                 )
             }
         });
@@ -78,7 +78,11 @@ impl Preprocessor for KatexProcessor {
 }
 
 impl KatexProcessor {
-    fn build_opts(&self, ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+    fn build_opts(
+        &self,
+        ctx: &PreprocessorContext,
+        cfg: &KatexConfig,
+    ) -> (katex::Opts, katex::Opts) {
         let configure_katex_opts = || -> katex::OptsBuilder {
             katex::Opts::builder()
                 .leqno(cfg.leqno)
@@ -132,7 +136,7 @@ impl KatexProcessor {
         raw_content: &str,
         inline_opts: &katex::Opts,
         display_opts: &katex::Opts,
-        stylesheet_header: &String
+        stylesheet_header: &String,
     ) -> String {
         let mut rendered_content = stylesheet_header.clone();
         // render display equations
@@ -210,10 +214,8 @@ pub fn get_macro_path(config: &mdbook::config::Config, book_root: &PathBuf) -> O
 
 pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
     let cfg = match book_cfg.get("preprocessor.katex") {
-        Some(raw) => raw
-            .clone()
-            .try_into(),
-        None => Ok(KatexConfig::default())
+        Some(raw) => raw.clone().try_into(),
+        None => Ok(KatexConfig::default()),
     };
     cfg.or_else(|_| Ok(KatexConfig::default()))
 }
@@ -248,8 +250,7 @@ fn katex_header(cfg: &KatexConfig) -> Result<String, Error> {
     } else {
         Ok(String::from(format!(
             "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
-            stylesheet,
-            integrity
+            stylesheet, integrity
         )))
     }
 }
