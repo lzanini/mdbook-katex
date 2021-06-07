@@ -14,7 +14,10 @@ fn test_support_html() {
     assert!(!preprocessor.supports_renderer("other_renderer"))
 }
 
-fn mock_build_opts(macros: HashMap<String, String>, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+fn mock_build_opts(
+    macros: HashMap<String, String>,
+    cfg: &KatexConfig,
+) -> (katex::Opts, katex::Opts) {
     let configure_katex_opts = || -> katex::OptsBuilder {
         katex::Opts::builder()
             .leqno(cfg.leqno)
@@ -58,7 +61,7 @@ fn test_rendering_without_math() {
         &raw_content,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     debug_assert_eq!(expected_output, rendered_content);
 }
@@ -79,7 +82,7 @@ fn test_dollar_escaping() {
         &raw_content,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     debug_assert_eq!(expected_output, rendered_content);
 }
@@ -100,7 +103,7 @@ fn test_inline_rendering() {
         &raw_content,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     debug_assert_eq!(expected_output, rendered_content);
 }
@@ -121,7 +124,7 @@ fn test_display_rendering() {
         &raw_content,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     debug_assert_eq!(expected_output, rendered_content);
 }
@@ -141,13 +144,13 @@ fn test_macros_without_argument() {
         &raw_content_macro,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     let rendered_content_no_macro = preprocessor.process_chapter(
         &raw_content_no_macro,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     debug_assert_eq!(rendered_content_macro, rendered_content_no_macro);
 }
@@ -167,13 +170,13 @@ fn test_macros_with_argument() {
         &raw_content_macro,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     let rendered_content_no_macro = preprocessor.process_chapter(
         &raw_content_no_macro,
         &inline_opts,
         &display_opts,
-        &stylesheet_header
+        &stylesheet_header,
     );
     debug_assert_eq!(rendered_content_macro, rendered_content_no_macro);
 }
