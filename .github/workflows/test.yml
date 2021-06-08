@@ -10,13 +10,13 @@ jobs:
     name: test-ubuntu
     runs-on: ubuntu-latest
     strategy:
-    matrix:
-    rust:
-      - stable
-      - beta
-      - nightly
-      # mdBook's Minimum Supported Rust Version
-      - 1.45.0
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+          # mdBook's Minimum Supported Rust Version
+          - 1.45.0
     steps:
       - uses: actions/checkout@master
 
