@@ -6,8 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: test-ubuntu
+  test-ubuntu:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,7 +27,7 @@ jobs:
 
       - run: cargo test
 
-    name: test-macos
+  test-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@master
@@ -41,7 +40,7 @@ jobs:
 
       - run: cargo test
 
-    name: test-windows
+  test-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@master
@@ -50,7 +49,7 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-          target: x86_64-pc-windows-gnu
+r         target: x86_64-pc-windows-gnu
           override: true
 
       - name: Setup windows build environment
