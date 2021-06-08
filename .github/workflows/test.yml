@@ -60,3 +60,16 @@ jobs:
 
       - run: cargo test
 
+  RustFmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+
+      - run: cargo fmt -- --check
