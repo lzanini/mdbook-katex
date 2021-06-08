@@ -28,36 +28,36 @@ jobs:
 
       - run: cargo test
 
-      name: test-macos
-      runs-on: macos-latest
-      steps:
-        - uses: actions/checkout@master
+    name: test-macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@master
 
-        - uses: actions-rs/toolchain@v1
-          with:
-            profile: minimal
-            toolchain: stable
-            override: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
-        - run: cargo test
+      - run: cargo test
 
-        name: test-windows
-        runs-on: windows-latest
-        steps:
-          - uses: actions/checkout@master
+    name: test-windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@master
 
-          - uses: actions-rs/toolchain@v1
-            with:
-              profile: minimal
-              toolchain: stable
-              target: x86_64-pc-windows-gnu
-              override: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          override: true
 
-          - name: Setup windows build environment
-            run: |
-              $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
-              echo "PATH=${env:PATH}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-              echo "CARGO_BUILD_TARGET=x86_64-pc-windows-gnu" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Setup windows build environment
+        run: |
+          $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
+          echo "PATH=${env:PATH}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "CARGO_BUILD_TARGET=x86_64-pc-windows-gnu" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          - run: cargo test
+      - run: cargo test
 
