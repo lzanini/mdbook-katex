@@ -54,7 +54,7 @@ impl KatexProcessor {
     fn load_macros(ctx: &PreprocessorContext) -> HashMap<String, String> {
         // load macros as a HashMap
         let mut map = HashMap::new();
-        if let Some(path) = get_macro_path(&ctx.config) {
+        if let Some(path) = get_macro_path(&ctx.config, &ctx.root) {
             let macro_str = load_as_string(&path);
             for couple in macro_str.split("\n") {
                 // only consider lines starting with a backslash
@@ -136,13 +136,15 @@ impl KatexProcessor {
         result
     }
 }
-pub fn get_macro_path(config: &mdbook::config::Config) -> Option<PathBuf> {
+pub fn get_macro_path(config: &mdbook::config::Config, book_root: &PathBuf) -> Option<PathBuf> {
     match config
         .get_preprocessor("katex")
         .map(|cfg| cfg.get("macros"))
         .flatten()
     {
-        Some(toml::value::Value::String(macros_value)) => Some(PathBuf::from(macros_value)),
+        Some(toml::value::Value::String(macros_value)) => {
+            Some(book_root.join(PathBuf::from(macros_value)))
+        }
         _ => None,
     }
 }
