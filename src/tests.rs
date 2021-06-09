@@ -1,4 +1,5 @@
 use super::*;
+use std::str::FromStr;
 
 #[test]
 fn test_name() {
@@ -105,4 +106,22 @@ fn test_macros_with_argument() {
     let rendered_content_no_macro =
         preprocessor.process_chapter(&raw_content_no_macro, &inline_opts, &display_opts);
     debug_assert_eq!(rendered_content_macro, rendered_content_no_macro);
+}
+
+#[test]
+fn test_macro_file_loading() {
+    let cfg_str = r#"
+    [book]
+    src = "src"
+
+    [preprocessor.katex]
+    macros = "macros.txt"
+    "#;
+
+    let cfg = mdbook::config::Config::from_str(cfg_str).unwrap();
+
+    debug_assert_eq!(
+        get_macro_path(&cfg, &PathBuf::from("book")),
+        Some(PathBuf::from("book/macros.txt")) // We supply a root, just like the preproccessor context does
+    );
 }
