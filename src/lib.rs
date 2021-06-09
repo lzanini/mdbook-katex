@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
@@ -52,16 +52,9 @@ impl KatexProcessor {
     }
 
     fn load_macros(ctx: &PreprocessorContext) -> HashMap<String, String> {
-        // get macros path from context
-        let mut macros_path = None;
-        if let Some(config) = ctx.config.get_preprocessor("katex") {
-            if let Some(toml::value::Value::String(macros_value)) = config.get("macros") {
-                macros_path = Some(Path::new(macros_value));
-            }
-        }
         // load macros as a HashMap
         let mut map = HashMap::new();
-        if let Some(path) = macros_path {
+        if let Some(path) = get_macro_path(&ctx.config, &ctx.root) {
             let macro_str = load_as_string(&path);
             for couple in macro_str.split("\n") {
                 // only consider lines starting with a backslash
@@ -141,6 +134,18 @@ impl KatexProcessor {
             current_split = splits.next()
         }
         result
+    }
+}
+pub fn get_macro_path(config: &mdbook::config::Config, book_root: &PathBuf) -> Option<PathBuf> {
+    match config
+        .get_preprocessor("katex")
+        .map(|cfg| cfg.get("macros"))
+        .flatten()
+    {
+        Some(toml::value::Value::String(macros_value)) => {
+            Some(book_root.join(PathBuf::from(macros_value)))
+        }
+        _ => None,
     }
 }
 
