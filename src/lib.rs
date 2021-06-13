@@ -31,7 +31,7 @@ pub struct KatexConfig {
     pub trust: bool,
     // other options
     pub static_css: bool,
-    pub macros_path: Option<String>,
+    pub macros: Option<String>,
 }
 
 impl Default for KatexConfig {
@@ -49,7 +49,7 @@ impl Default for KatexConfig {
             trust: false,
             // other options
             static_css: false,
-            macros_path: None,
+            macros: None,
         }
     }
 }
@@ -98,7 +98,11 @@ impl Preprocessor for KatexProcessor {
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts) = self.build_opts(&ctx, &cfg);
         // get stylesheet header
-        let stylesheet_header_generator = katex_header(&ctx, &cfg)?;
+        let stylesheet_header_generator = katex_header(
+            &ctx.root,
+            &ctx.config.build.build_dir,
+            &cfg,
+        )?;
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 let stylesheet_header =
@@ -138,7 +142,7 @@ impl KatexProcessor {
                 .clone()
         };
         // load macros as a HashMap
-        let macros = Self::load_macros(&ctx, &cfg.macros_path);
+        let macros = Self::load_macros(&ctx, &cfg.macros);
         // inline rendering options
         let inline_opts = configure_katex_opts()
             .display_mode(false)
@@ -162,7 +166,7 @@ impl KatexProcessor {
     ) -> HashMap<String, String> {
         // load macros as a HashMap
         let mut map = HashMap::new();
-        if let Some(path) = get_macro_path(&ctx, &macros_path) {
+        if let Some(path) = get_macro_path(&ctx.root, &macros_path) {
             let macro_str = load_as_string(&path);
             for couple in macro_str.split("\n") {
                 // only consider lines starting with a backslash
@@ -245,9 +249,9 @@ impl KatexProcessor {
     }
 }
 
-pub fn get_macro_path(ctx: &PreprocessorContext, macros_path: &Option<String>) -> Option<PathBuf> {
+pub fn get_macro_path(root: &PathBuf, macros_path: &Option<String>) -> Option<PathBuf> {
     match macros_path {
-        Some(path) => Some(ctx.root.join(PathBuf::from(path))),
+        Some(path) => Some(root.join(PathBuf::from(path))),
         _ => None,
     }
 }
@@ -277,7 +281,8 @@ pub fn load_as_string(path: &Path) -> String {
 }
 
 fn katex_header(
-    ctx: &PreprocessorContext,
+    build_root: &PathBuf,
+    build_dir: &PathBuf,
     cfg: &KatexConfig,
 ) -> Result<Box<dyn Fn(String) -> String>, Error> {
     // constants
@@ -287,8 +292,7 @@ fn katex_header(
 
     if cfg.static_css {
         // create katex resource directory
-        let mut katex_dir_path = ctx.root.clone();
-        katex_dir_path.push(ctx.config.build.build_dir.clone());
+        let mut katex_dir_path = build_root.join(build_dir);
         katex_dir_path.push("html/katex");
         if !katex_dir_path.exists() {
             std::fs::create_dir_all(katex_dir_path.as_path())?;
