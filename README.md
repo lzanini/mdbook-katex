@@ -14,9 +14,11 @@ First, install the `mdbook-katex` crate
 cargo install mdbook-katex
 ```
 
-Then, add the following line to your `book.toml` file
+Then, add the following lines to your `book.toml` file
 
 ```toml
+[output.katex]
+
 [preprocessor.katex]
 ```
 
@@ -35,6 +37,29 @@ and a regular \$ symbol.
 ```
 
 LaTex equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
+
+## Katex options
+The preprocessor supports passing options to the katex-rs crate in order
+to configure its behaviour. These options are specified under the
+`[preprocessor.katex]` directive.
+
+The currently spported arguments are:
+| Argument | Type |
+| :- | :- |
+| [`leqno`](https://katex.org/docs/options.html#:~:text=default-,leqno,-boolean) | `boolean` |
+| [`fleqn`](https://katex.org/docs/options.html#:~:text=LaTeX-,fleqn,-boolean) | `boolean` |
+| [`throw-on-error`](https://katex.org/docs/options.html#:~:text=package-,throwonerror,-boolean) | `boolean` |
+| [`error-color`](https://katex.org/docs/options.html#:~:text=errorColor-,errorcolor,-string) | `string` |
+| [`min-rule-thickness`](https://katex.org/docs/options.html#:~:text=state-,minrulethickness,-number) | `number` |
+| [`max-size`](https://katex.org/docs/options.html#:~:text=true-,maxsize,-number) | `number` |
+| [`max-expand`](https://katex.org/docs/options.html#:~:text=maxexpand) | `number` |
+| [`trust`](https://katex.org/docs/options.html#:~:text=LaTeX-,trust,-boolean) | `boolean` |
+
+There are also options to configure the behaviour of the preprocessor:
+| Option | Default | Description |
+| :- | :- |
+| `static-css` | `false` | Generates fully static html pages with katex styling |
+| `macros` | `None` | Path to macros file (see [Custom macros](#custom-macros)) |
 
 ## Custom macros
 
