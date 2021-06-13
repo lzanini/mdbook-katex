@@ -57,7 +57,7 @@ The currently spported arguments are:
 
 There are also options to configure the behaviour of the preprocessor:
 | Option | Default | Description |
-| :- | :- |
+| :- | :- | :- |
 | `static-css` | `false` | Generates fully static html pages with katex styling |
 | `macros` | `None` | Path to macros file (see [Custom macros](#custom-macros)) |
 
