@@ -1,11 +1,50 @@
+extern crate log;
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
+use toml;
+use serde_derive::{Deserialize, Serialize};
 
 use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
+
+#[derive(Deserialize, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct KatexConfig {
+    // options for the katex-rust crate
+    pub leqno: bool,
+    pub fleqn: bool,
+    pub throw_on_error: bool,
+    pub error_color: String,
+    pub min_rule_thickness: f64,
+    pub max_size: f64,
+    pub max_expand: i32,
+    pub trust: bool,
+    // other options
+    pub static_css: bool
+}
+
+impl Default for KatexConfig {
+    fn default() -> KatexConfig {
+        KatexConfig {
+            // default options for the katex-rust crate
+            // uses defaults specified in: https://katex.org/docs/options.html
+            leqno: false,
+            fleqn: false,
+            throw_on_error: true,
+            error_color: String::from("#cc0000"),
+            min_rule_thickness: -1.0,
+            max_size: f64::INFINITY,
+            max_expand: 1000,
+            trust: false,
+            // other options
+            static_css: true
+        }
+    }
+}
 
 pub struct KatexProcessor;
 
@@ -15,11 +54,19 @@ impl Preprocessor for KatexProcessor {
     }
 
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
-        let (inline_opts, display_opts) = self.build_opts(ctx);
+        // parse TOML config
+        let cfg = get_config(&ctx.config)?;
+        let (inline_opts, display_opts) = self.build_opts(ctx, &cfg);
+        // get stylesheet header
+        let stylesheet_header = katex_header(&cfg)?;
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                chapter.content =
-                    self.process_chapter(&chapter.content, &inline_opts, &display_opts)
+                chapter.content = self.process_chapter(
+                    &chapter.content,
+                    &inline_opts,
+                    &display_opts,
+                    &stylesheet_header
+                )
             }
         });
         Ok(book)
@@ -31,18 +78,30 @@ impl Preprocessor for KatexProcessor {
 }
 
 impl KatexProcessor {
-    fn build_opts(&self, ctx: &PreprocessorContext) -> (katex::Opts, katex::Opts) {
+    fn build_opts(&self, ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+        let configure_katex_opts = || -> katex::OptsBuilder {
+            katex::Opts::builder()
+                .leqno(cfg.leqno)
+                .fleqn(cfg.fleqn)
+                .throw_on_error(cfg.throw_on_error)
+                .error_color(cfg.error_color.clone())
+                .min_rule_thickness(cfg.min_rule_thickness)
+                .max_size(cfg.max_size)
+                .max_expand(cfg.max_expand)
+                .trust(cfg.trust)
+                .clone()
+        };
         // load macros as a HashMap
         let macros = Self::load_macros(ctx);
         // inline rendering options
-        let inline_opts = katex::Opts::builder()
+        let inline_opts = configure_katex_opts()
             .display_mode(false)
             .output_type(katex::OutputType::Html)
             .macros(macros.clone())
             .build()
             .unwrap();
         // display rendering options
-        let display_opts = katex::Opts::builder()
+        let display_opts = configure_katex_opts()
             .display_mode(true)
             .output_type(katex::OutputType::Html)
             .macros(macros)
@@ -73,9 +132,9 @@ impl KatexProcessor {
         raw_content: &str,
         inline_opts: &katex::Opts,
         display_opts: &katex::Opts,
+        stylesheet_header: &String
     ) -> String {
-        // add katex css
-        let mut rendered_content = katex_header();
+        let mut rendered_content = stylesheet_header.clone();
         // render display equations
         let content = Self::render_between_delimiters(&raw_content, "$$", display_opts, false);
         // render inline equations
@@ -149,6 +208,16 @@ pub fn get_macro_path(config: &mdbook::config::Config, book_root: &PathBuf) -> O
     }
 }
 
+pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
+    let cfg = match book_cfg.get("preprocessor.katex") {
+        Some(raw) => raw
+            .clone()
+            .try_into(),
+        None => Ok(KatexConfig::default())
+    };
+    cfg.or_else(|_| Ok(KatexConfig::default()))
+}
+
 pub fn load_as_string(path: &Path) -> String {
     let display = path.display();
 
@@ -165,8 +234,24 @@ pub fn load_as_string(path: &Path) -> String {
     string
 }
 
-fn katex_header() -> String {
-    String::from("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css\" integrity=\"sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X\" crossorigin=\"anonymous\">\n\n")
+fn katex_header(cfg: &KatexConfig) -> Result<String, Error> {
+    let stylesheet = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css";
+    let integrity = "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X";
+    if cfg.static_css {
+        // download stylesheet and save it to the book root
+        let response = reqwest::blocking::get(stylesheet)?;
+
+        Ok(String::from(format!(
+            "<style type=\"text/css\" scoped>{}</style>",
+            std::str::from_utf8(&response.bytes()?)?
+        )))
+    } else {
+        Ok(String::from(format!(
+            "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
+            stylesheet,
+            integrity
+        )))
+    }
 }
 
 #[cfg(test)]
