@@ -98,11 +98,8 @@ impl Preprocessor for KatexProcessor {
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts) = self.build_opts(&ctx, &cfg);
         // get stylesheet header
-        let stylesheet_header_generator = katex_header(
-            &ctx.root,
-            &ctx.config.build.build_dir,
-            &cfg,
-        )?;
+        let stylesheet_header_generator =
+            katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 let stylesheet_header =

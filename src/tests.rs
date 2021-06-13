@@ -56,11 +56,7 @@ fn test_rendering_without_math() {
     let raw_content = r"Some text, and more text.";
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(
-        &build_root,
-        &build_dir,
-        &cfg,
-    ).unwrap();
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let mut expected_output = String::from("");
     expected_output.push_str(&stylesheet_header);
@@ -84,11 +80,7 @@ fn test_dollar_escaping() {
     let raw_content = r"Some text, \$\$ and more text.";
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(
-        &build_root,
-        &build_dir,
-        &cfg,
-    ).unwrap();
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let mut expected_output = String::from("");
     expected_output.push_str(&stylesheet_header);
@@ -112,11 +104,7 @@ fn test_inline_rendering() {
     let raw_content = r"Some text, $\nabla f(x) \in \mathbb{R}^n$, and more text.";
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(
-        &build_root,
-        &build_dir,
-        &cfg,
-    ).unwrap();
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let mut expected_output = String::from("");
     expected_output.push_str(&stylesheet_header);
@@ -140,11 +128,7 @@ fn test_display_rendering() {
     let raw_content = r"Some text, $\nabla f(x) \in \mathbb{R}^n$, and more text.";
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(
-        &build_root,
-        &build_dir,
-        &cfg,
-    ).unwrap();
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let mut expected_output = String::from("");
     expected_output.push_str(&stylesheet_header);
@@ -170,11 +154,7 @@ fn test_macros_without_argument() {
     let raw_content_macro = r"Some text, $\grad f(x) \in \mathbb{R}^n$, and more text.";
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(
-        &build_root,
-        &build_dir,
-        &cfg,
-    ).unwrap();
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let rendered_content_macro = preprocessor.process_chapter(
         &raw_content_macro,
@@ -203,11 +183,7 @@ fn test_macros_with_argument() {
     let raw_content_macro = r"Some text, $\nabla f(x) \in \R{1}$, and more text.";
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(
-        &build_root,
-        &build_dir,
-        &cfg,
-    ).unwrap();
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let rendered_content_macro = preprocessor.process_chapter(
         &raw_content_macro,
