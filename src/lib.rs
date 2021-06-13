@@ -1,20 +1,20 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
-use std::collections::HashSet;
 
-use toml;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
+use toml;
 
 use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
-use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use mdbook::renderer::{Renderer, RenderContext};
 use mdbook::errors::Result;
+use mdbook::preprocess::{Preprocessor, PreprocessorContext};
+use mdbook::renderer::{RenderContext, Renderer};
 use mdbook::utils::fs::path_to_root;
 
 #[derive(Deserialize, Serialize)]
@@ -49,7 +49,7 @@ impl Default for KatexConfig {
             trust: false,
             // other options
             static_css: false,
-            macros_path: None
+            macros_path: None,
         }
     }
 }
@@ -101,9 +101,8 @@ impl Preprocessor for KatexProcessor {
         let stylesheet_header_generator = katex_header(&ctx, &cfg)?;
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                let stylesheet_header = stylesheet_header_generator(
-                    path_to_root(chapter.path.clone().unwrap())
-                );
+                let stylesheet_header =
+                    stylesheet_header_generator(path_to_root(chapter.path.clone().unwrap()));
                 chapter.content = self.process_chapter(
                     &chapter.content,
                     &inline_opts,
@@ -121,7 +120,11 @@ impl Preprocessor for KatexProcessor {
 }
 
 impl KatexProcessor {
-    fn build_opts(&self, ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+    fn build_opts(
+        &self,
+        ctx: &PreprocessorContext,
+        cfg: &KatexConfig,
+    ) -> (katex::Opts, katex::Opts) {
         let configure_katex_opts = || -> katex::OptsBuilder {
             katex::Opts::builder()
                 .leqno(cfg.leqno)
@@ -153,7 +156,10 @@ impl KatexProcessor {
         (inline_opts, display_opts)
     }
 
-    fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashMap<String, String> {
+    fn load_macros(
+        ctx: &PreprocessorContext,
+        macros_path: &Option<String>,
+    ) -> HashMap<String, String> {
         // load macros as a HashMap
         let mut map = HashMap::new();
         if let Some(path) = get_macro_path(&ctx, &macros_path) {
@@ -175,7 +181,7 @@ impl KatexProcessor {
         raw_content: &str,
         inline_opts: &katex::Opts,
         display_opts: &katex::Opts,
-        stylesheet_header: &String
+        stylesheet_header: &String,
     ) -> String {
         let mut rendered_content = stylesheet_header.clone();
         // render display equations
@@ -270,7 +276,10 @@ pub fn load_as_string(path: &Path) -> String {
     string
 }
 
-fn katex_header(ctx: &PreprocessorContext, cfg: &KatexConfig) -> Result<Box<dyn Fn(String) -> String>, Error> {
+fn katex_header(
+    ctx: &PreprocessorContext,
+    cfg: &KatexConfig,
+) -> Result<Box<dyn Fn(String) -> String>, Error> {
     // constants
     let cdn_root = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/";
     let stylesheet_url = format!("{}katex.min.css", cdn_root);
@@ -309,7 +318,7 @@ fn katex_header(ctx: &PreprocessorContext, cfg: &KatexConfig) -> Result<Box<dyn 
             let mut resource_path = katex_dir_path.clone();
             resource_path.push(&resource_name);
             resource_path = PathBuf::from(String::from(
-                REL_PATTERN.replace_all(resource_path.to_str().unwrap(), "")
+                REL_PATTERN.replace_all(resource_path.to_str().unwrap(), ""),
             ));
             // create resource path and populate content
             if !resource_path.as_path().exists() {
@@ -343,12 +352,9 @@ fn katex_header(ctx: &PreprocessorContext, cfg: &KatexConfig) -> Result<Box<dyn 
     } else {
         let stylesheet = String::from(format!(
             "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
-            stylesheet_url,
-            integrity,
+            stylesheet_url, integrity,
         ));
-        Ok(Box::new(move |_: String| -> String {
-            stylesheet.clone()
-        }))
+        Ok(Box::new(move |_: String| -> String { stylesheet.clone() }))
     }
 }
 

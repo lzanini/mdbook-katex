@@ -4,7 +4,7 @@ extern crate toml;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::book::Book;
 use mdbook::errors::Error;
-use mdbook::preprocess::{PreprocessorContext, CmdPreprocessor, Preprocessor};
+use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
 use mdbook_katex::KatexProcessor;
 use std::io::{self, Read};
@@ -12,9 +12,10 @@ use std::io::{self, Read};
 pub fn make_app() -> App<'static, 'static> {
     App::new("mdbook-katex")
         .about("A preprocessor that renders KaTex equations to HTML.")
-        .subcommand(SubCommand::with_name("supports")
-            .arg(Arg::with_name("renderer").required(true))
-            .about("Check whether a renderer is supported by this preprocessor"),
+        .subcommand(
+            SubCommand::with_name("supports")
+                .arg(Arg::with_name("renderer").required(true))
+                .about("Check whether a renderer is supported by this preprocessor"),
         )
 }
 
@@ -44,7 +45,11 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), 
     }
 }
 
-fn handle_preprocessing(pre: &dyn Preprocessor, ctx: &PreprocessorContext, book: &Book) -> Result<(), Error> {
+fn handle_preprocessing(
+    pre: &dyn Preprocessor,
+    ctx: &PreprocessorContext,
+    book: &Book,
+) -> Result<(), Error> {
     // check mdbook version
     check_mdbook_version(&ctx.mdbook_version)?;
 
@@ -55,7 +60,7 @@ fn handle_preprocessing(pre: &dyn Preprocessor, ctx: &PreprocessorContext, book:
 
 fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Error> {
     check_mdbook_version(&ctx.version)?;
-   rend.render(&ctx)
+    rend.render(&ctx)
 }
 
 fn main() -> Result<(), Error> {
@@ -81,6 +86,6 @@ fn main() -> Result<(), Error> {
 
     Err(Error::msg(
         "The katex preprocessor/renderer did not understand what you wanted\
-        to do"
+        to do",
     ))
 }
