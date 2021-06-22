@@ -295,16 +295,23 @@ fn katex_header(
             std::fs::create_dir_all(katex_dir_path.as_path())?;
         }
 
-        // download stylesheet content
-        let stylesheet_response = reqwest::blocking::get(stylesheet_url)?;
-        let stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes()?)?);
-
-        // create stylesheet file and populate it with the content
+        // download or fetch stylesheet content
         let mut stylesheet_path = katex_dir_path.clone();
         stylesheet_path.push("katex.min.css");
+
+        let mut stylesheet: String;
         if !stylesheet_path.exists() {
+            // download stylesheet content
+            let stylesheet_response = reqwest::blocking::get(stylesheet_url)?;
+            stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes()?)?);
+            // create stylesheet file and populate it with the content
             let mut stylesheet_file = File::create(stylesheet_path.as_path())?;
             stylesheet_file.write_all(stylesheet.as_str().as_bytes())?;
+        } else {
+            // read stylesheet content from disk
+            stylesheet = String::new();
+            let mut stylesheet_file = File::open(stylesheet_path.as_path())?;
+            stylesheet_file.read_to_string(&mut stylesheet)?;
         }
 
         // download all resources from stylesheet
