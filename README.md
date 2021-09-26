@@ -8,10 +8,10 @@ This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 ## Getting Started
 
-First, install the `mdbook-katex` crate
+First, install `mdbook-katex`
 
 ```
-cargo install mdbook-katex
+cargo install --git "https://github.com/lzanini/mdbook-katex"
 ```
 
 Then, add the following lines to your `book.toml` file
