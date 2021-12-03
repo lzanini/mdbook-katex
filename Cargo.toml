@@ -8,13 +8,13 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-katex = "0.3.2"
+katex = "0.4.2"
 clap = "2.33.3"
 mdbook = "0.4.10"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-toml = "0.4"
+toml = "0.5.8"
 log = "0.4"
 reqwest = { version = "0.11.3", features = ["blocking"] }
 regex = "1.5.4"
