@@ -1,9 +1,9 @@
 [package]
 name = "mdbook-katex"
-version = "0.2.10"
+version = "0.2.11"
 authors = ["Lucas Zanini <zanini.lcs@gmail.com>"]
 edition = "2018"
-description = "mdBook preprocessor rendering LaTex equations to HTML."
+description = "mdBook preprocessor rendering LaTeX equations to HTML."
 license = "MIT"
 readme = "README.md"
 

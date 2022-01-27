@@ -1,7 +1,7 @@
 extern crate katex;
 extern crate toml;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand, crate_version};
 use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
@@ -11,6 +11,7 @@ use std::io::{self, Read};
 
 pub fn make_app() -> App<'static, 'static> {
     App::new("mdbook-katex")
+        .version(crate_version!())
         .about("A preprocessor that renders KaTex equations to HTML.")
         .subcommand(
             SubCommand::with_name("supports")
@@ -64,12 +65,13 @@ fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Erro
 }
 
 fn main() -> Result<(), Error> {
+    // set up app
+    let matches = make_app().get_matches();
+
     // grab book data from stdin
     let mut book_data = String::new();
     io::stdin().read_to_string(&mut book_data)?;
 
-    // set up app
-    let matches = make_app().get_matches();
     let pre = KatexProcessor;
 
     // determine what behaviour has been requested
