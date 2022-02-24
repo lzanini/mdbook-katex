@@ -32,6 +32,7 @@ pub struct KatexConfig {
     // other options
     pub static_css: bool,
     pub macros: Option<String>,
+    pub macros_text: String,
 }
 
 impl Default for KatexConfig {
@@ -50,6 +51,7 @@ impl Default for KatexConfig {
             // other options
             static_css: false,
             macros: None,
+            macros_text: String::from(""),
         }
     }
 }
@@ -96,6 +98,10 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
+        let mut macros_txt = String::from("");
+        if let Some(path) = get_macro_path(&ctx.root, &cfg.macros) {
+            macros_txt = load_as_string(&path);
+        }
         let (inline_opts, display_opts) = self.build_opts(&ctx, &cfg);
         // get stylesheet header
         let stylesheet_header_generator =
@@ -106,6 +112,7 @@ impl Preprocessor for KatexProcessor {
                     stylesheet_header_generator(path_to_root(chapter.path.clone().unwrap()));
                 chapter.content = self.process_chapter(
                     &chapter.content,
+                    &macros_txt,
                     &inline_opts,
                     &display_opts,
                     &stylesheet_header,
@@ -139,7 +146,8 @@ impl KatexProcessor {
                 .clone()
         };
         // load macros as a HashMap
-        let macros = Self::load_macros(&ctx, &cfg.macros);
+        // let macros = Self::load_macros(&ctx, &cfg.macros);
+        let macros = HashMap::new();
         // inline rendering options
         let inline_opts = configure_katex_opts()
             .display_mode(false)
@@ -180,15 +188,16 @@ impl KatexProcessor {
     fn process_chapter(
         &self,
         raw_content: &str,
+        macros_txt: &str,
         inline_opts: &katex::Opts,
         display_opts: &katex::Opts,
         stylesheet_header: &String,
     ) -> String {
         let mut rendered_content = stylesheet_header.clone();
         // render display equations
-        let content = Self::render_between_delimiters(&raw_content, "$$", display_opts, false);
+        let content = Self::render_between_delimiters(&raw_content, &macros_txt, "$$", display_opts, false);
         // render inline equations
-        let content = Self::render_between_delimiters(&content, "$", inline_opts, true);
+        let content = Self::render_between_delimiters(&content, &macros_txt, "$", inline_opts, true);
         rendered_content.push_str(&content);
         rendered_content
     }
@@ -196,6 +205,7 @@ impl KatexProcessor {
     // render equations between given delimiters, with specified options
     fn render_between_delimiters(
         raw_content: &str,
+        macros_txt: &str,
         delimiters: &str,
         opts: &katex::Opts,
         escape_backslash: bool,
@@ -205,7 +215,8 @@ impl KatexProcessor {
         for item in Self::split(&raw_content, &delimiters, escape_backslash) {
             if inside_delimiters {
                 // try to render equation
-                if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+                let to_render = format!("{}\n{}", macros_txt, item);
+                if let Ok(rendered) = katex::render_with_opts(&to_render, opts) {
                     rendered_content.push_str(&rendered)
                 // if rendering fails, keep the unrendered equation
                 } else {
