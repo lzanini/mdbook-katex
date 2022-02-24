@@ -216,10 +216,12 @@ impl KatexProcessor {
             if inside_delimiters {
                 // try to render equation
                 let to_render = format!("{}\n{}", macros_txt, item);
-                if let Ok(rendered) = katex::render_with_opts(&to_render, opts) {
-                    rendered_content.push_str(&rendered)
+                let rendered = katex::render_with_opts(&to_render, opts);
+                if let Ok(output) = rendered {
+                    rendered_content.push_str(&output)
                 // if rendering fails, keep the unrendered equation
                 } else {
+                    log::warn!("Failure while rendering: {} \n\n {:?}", to_render, rendered);
                     rendered_content.push_str(&item)
                 }
             // outside delimiters
