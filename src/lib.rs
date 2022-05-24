@@ -17,6 +17,8 @@ use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
 use mdbook::utils::fs::path_to_root;
 
+const MARKDOWN_FENCED_CODE_BLOCK_DELIMITER: &str = "```\n";
+
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
@@ -220,27 +222,44 @@ impl KatexProcessor {
         rendered_content
     }
 
+    /// Returns a vector where every other string should be rendered by katex, starting with the second string
     fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
         let mut result = Vec::new();
-        let mut splits = string.split(separator);
-        let mut current_split = splits.next();
-        // iterate over splits
-        while let Some(substring) = current_split {
-            let mut result_split = String::from(substring);
-            if escape_backslash {
-                // while the current split ends with a backslash
-                while let Some('\\') = current_split.unwrap().chars().last() {
-                    // removes the backslash, add the separator back, and add the next split
-                    result_split.pop();
-                    result_split.push_str(separator);
-                    current_split = splits.next();
-                    if let Some(split) = current_split {
-                        result_split.push_str(split);
+
+        let blocks = string.split(MARKDOWN_FENCED_CODE_BLOCK_DELIMITER);
+        for (i, block) in blocks.enumerate() {
+            if i % 2 == 0 {
+                let mut splits = block.split(separator);
+                let mut current_split = splits.next();
+                // iterate over splits
+                while let Some(substring) = current_split {
+                    let mut result_split = String::from(substring);
+                    if escape_backslash {
+                        // while the current split ends with a backslash
+                        while let Some('\\') = current_split.unwrap().chars().last() {
+                            // removes the backslash, add the separator back, and add the next split
+                            result_split.pop();
+                            result_split.push_str(separator);
+                            current_split = splits.next();
+                            if let Some(split) = current_split {
+                                result_split.push_str(split);
+                            }
+                        }
                     }
+                    result.push(result_split);
+                    current_split = splits.next()
                 }
+            } else {
+                result
+                    .last_mut()
+                    .unwrap() // should never panic as we should always have at least one result by this point
+                    .push_str(&format!(
+                        "{}{}{}",
+                        MARKDOWN_FENCED_CODE_BLOCK_DELIMITER,
+                        block,
+                        MARKDOWN_FENCED_CODE_BLOCK_DELIMITER,
+                    ));
             }
-            result.push(result_split);
-            current_split = splits.next()
         }
         result
     }
