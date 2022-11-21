@@ -6,10 +6,10 @@ use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
-use mdbook_katex::KatexProcessor;
+use mdbook_katex2::KatexProcessor;
 use std::io::{self, Read};
 
-pub fn make_app() -> App<'static, 'static> {
+pub fn make_app() -> App<'static> {
     App::new("mdbook-katex")
         .about("A preprocessor that renders KaTex equations to HTML.")
         .subcommand(
