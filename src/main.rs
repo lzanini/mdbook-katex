@@ -10,7 +10,7 @@ use mdbook_katex2::KatexProcessor;
 use std::io::{self, Read};
 
 pub fn make_app() -> App<'static> {
-    App::new("mdbook-katex")
+    App::new("mdbook-katex2")
         .about("A preprocessor that renders KaTex equations to HTML.")
         .subcommand(
             SubCommand::with_name("supports")
