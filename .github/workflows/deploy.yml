@@ -29,10 +29,6 @@ jobs:
       run: |
         cargo build --release
 
-    - name: Strip mdbook-katex2
-      run: |
-        strip target/x86_64-pc-windows-msvc/release/mdbook-katex2.exe
-
     - name: Get the version
       shell: bash
       id: tagName
@@ -81,10 +77,6 @@ jobs:
       run: |
         cargo build --release --target ${{ matrix.target }}
 
-    - name: Strip mdbook-katex2
-      run: |
-        strip target/${{ matrix.target }}/release/mdbook-katex
-
     - name: Get the version
       id: tagName
       run: |
@@ -119,10 +111,6 @@ jobs:
     - name: Build mdbook-katex2
       run: |
         cargo build --release
-
-    - name: Strip mdbook-katex2
-      run: |
-        strip target/release/mdbook-katex2
 
     - name: Get the version
       id: tagName
