@@ -5,7 +5,7 @@ use std::str::FromStr;
 fn test_name() {
     let pre = KatexProcessor;
     let preprocessor: &dyn Preprocessor = &pre;
-    assert_eq!(preprocessor.name(), "katex")
+    assert_eq!(preprocessor.name(), "katex2")
 }
 
 #[test]
@@ -206,7 +206,7 @@ fn test_macro_file_loading() {
     [book]
     src = "src"
 
-    [preprocessor.katex]
+    [preprocessor.katex2]
     macros = "macros.txt"
     "#;
 
