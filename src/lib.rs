@@ -206,7 +206,7 @@ impl KatexProcessor {
             if inside_delimiters {
                 // try to render equation
                 if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-                    rendered_content.push_str(&rendered)
+                    rendered_content.push_str(&rendered.replace("\n", " "))
                 // if rendering fails, keep the unrendered equation
                 } else {
                     rendered_content.push_str(&item)
