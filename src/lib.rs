@@ -275,7 +275,7 @@ pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Er
 pub fn load_as_string(path: &Path) -> String {
     let display = path.display();
 
-    let mut file = match File::open(&path) {
+    let mut file = match File::open(path) {
         Err(why) => panic!("couldn't open {}: {}", display, why),
         Ok(file) => file,
     };
