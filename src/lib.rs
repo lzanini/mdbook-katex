@@ -259,7 +259,9 @@ impl KatexProcessor {
 }
 
 pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
-    macros_path.as_ref().map(|path| root.join(PathBuf::from(path)))
+    macros_path
+        .as_ref()
+        .map(|path| root.join(PathBuf::from(path)))
 }
 
 pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
