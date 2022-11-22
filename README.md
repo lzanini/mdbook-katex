@@ -12,7 +12,9 @@ This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 First, install `mdbook-katex2`
 
-*TODO: `mdbook_katex2` is not ready yet. But, you can build it yourself and try it.*
+```shell
+cargo install mdbook-katex2
+```
 
 Then, add the following lines to your `book.toml` file
 
@@ -38,7 +40,12 @@ and a regular \$ symbol.
 
 LaTex equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
+## Coming from `mdbook-katex`
+
+In terms of using the preprocessor, there will be no difference except you add a `2` after `katex` as specified above in [Getting Started](#getting-started).
+
 ## Katex options
+
 The preprocessor supports passing options to the katex-rs crate in order
 to configure its behaviour. These options are specified under the
 `[preprocessor.katex2]` directive.
@@ -84,6 +91,13 @@ These macros can then be used in your `.md` files
 
 $$ \grad f(x) \in \R{n}{p} $$
 ```
+
+## Caveats
+
+The build artifact of the book will be in a folder named `html` inside the directory you specify instead of being directly there.
+This is the same behaviour `mdbook_katex` has. Consider this when you use `mdbook_katex2` in your CIs.
+
+`$\backslash$` does not work, but you can use `$\setminus$` instead.
 
 ## Acknowledgements
 
