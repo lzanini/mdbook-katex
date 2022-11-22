@@ -102,14 +102,15 @@ impl Preprocessor for KatexProcessor {
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                let stylesheet_header =
-                    stylesheet_header_generator(path_to_root(chapter.path.clone().unwrap()));
-                chapter.content = self.process_chapter(
-                    &chapter.content,
-                    &inline_opts,
-                    &display_opts,
-                    &stylesheet_header,
-                )
+                if let Some(path) = &chapter.path {
+                    let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
+                    chapter.content = self.process_chapter(
+                        &chapter.content,
+                        &inline_opts,
+                        &display_opts,
+                        &stylesheet_header,
+                    )
+                }
             }
         });
         Ok(book)
