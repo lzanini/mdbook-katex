@@ -2,8 +2,6 @@ name: deploy
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
 
 jobs:
 
@@ -15,7 +13,7 @@ jobs:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
@@ -58,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install musl tools
       if: matrix.target == 'x86_64-unknown-linux-musl'
@@ -73,7 +71,7 @@ jobs:
         target: ${{ matrix.target }}
         override: true
 
-    - name: Build mbdook-katex
+    - name: Build mbdook-katex2
       run: |
         cargo build --release --target ${{ matrix.target }}
 
@@ -87,7 +85,7 @@ jobs:
       run: |
         TAR_FILE=mdbook-katex2-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_FILE-${{ matrix.target }}.tar.gz \
-                  target/${{ matrix.target }}/release/mdbook-katex
+                  target/${{ matrix.target }}/release/mdbook-katex2
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
@@ -99,7 +97,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
@@ -136,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Download artifacts
       uses: actions/download-artifact@v2
@@ -172,17 +170,3 @@ jobs:
           mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish:
-
-    runs-on: ubuntu-latest
-
-    steps:
-        - uses: actions/checkout@v2
-        - uses: actions-rs/toolchain@v1
-          with:
-              toolchain: stable
-              override: true
-        - uses: katyo/publish-crates@v1
-          with:
-              registry-token: ${{ secrets.CARGO_CREDENTIALS }}
