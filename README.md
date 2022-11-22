@@ -1,4 +1,6 @@
-A preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
+`mdbook-katex2` aims to be a maintained version of `mdbook-katex`, providing equivalent functionality.
+
+`mdbook-katex` is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
 
 This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTex functions.
 
@@ -8,18 +10,16 @@ This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 ## Getting Started
 
-First, install `mdbook-katex`
+First, install `mdbook-katex2`
 
-```
-cargo install --git "https://github.com/lzanini/mdbook-katex"
-```
+*TODO: `mdbook_katex2` is not ready yet. But, you can build it yourself and try it.*
 
 Then, add the following lines to your `book.toml` file
 
 ```toml
-[output.katex]
+[output.katex2]
 
-[preprocessor.katex]
+[preprocessor.katex2]
 ```
 
 You can now use `$` and `$$` delimiters for inline and display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backslash `\$`.
@@ -41,7 +41,7 @@ LaTex equations will be rendered as HTML when running `mdbook build` or `mdbook 
 ## Katex options
 The preprocessor supports passing options to the katex-rs crate in order
 to configure its behaviour. These options are specified under the
-`[preprocessor.katex]` directive.
+`[preprocessor.katex2]` directive.
 
 The currently spported arguments are:
 | Argument | Type |
@@ -73,7 +73,7 @@ Custom LaTex macros must be defined in a `.txt` file, according to the following
 You need to specify the path of this file in your `book.toml` as follows
 
 ```toml
-[preprocessor.katex]
+[preprocessor.katex2]
 macros = "path/to/macros.txt"
 ```
 
@@ -84,3 +84,7 @@ These macros can then be used in your `.md` files
 
 $$ \grad f(x) \in \R{n}{p} $$
 ```
+
+## Acknowledgements
+
+[`mdbook-katex`](https://github.com/lzanini/mdbook-katex) was developed by [Lucas Zanini](https://github.com/lzanini) et. al., see the original repository for all the individual contributions.
