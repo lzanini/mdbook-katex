@@ -185,11 +185,23 @@ impl KatexProcessor {
         stylesheet_header: &String,
     ) -> String {
         let mut rendered_content = stylesheet_header.clone();
-        // render display equations
-        let content = Self::render_between_delimiters(&raw_content, "$$", display_opts, false);
-        // render inline equations
-        let content = Self::render_between_delimiters(&content, "$", inline_opts, true);
-        rendered_content.push_str(&content);
+        const CODE_BLOCK_DELIMITER: &str = "```";
+        let blocks = raw_content.split(CODE_BLOCK_DELIMITER);
+        let mut outside_code_block = false;
+        for block in blocks {
+            outside_code_block = !outside_code_block;
+            if outside_code_block {
+                // render display equations
+                let content = Self::render_between_delimiters(&block, "$$", display_opts, false);
+                // render inline equations
+                let content = Self::render_between_delimiters(&content, "$", inline_opts, true);
+                rendered_content.push_str(&content);
+            } else {
+                rendered_content.push_str(CODE_BLOCK_DELIMITER);
+                rendered_content.push_str(block);
+                rendered_content.push_str(CODE_BLOCK_DELIMITER);
+            }
+        }
         rendered_content
     }
 

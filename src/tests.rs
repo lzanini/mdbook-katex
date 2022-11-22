@@ -243,5 +243,32 @@ fn test_rendering_table_with_math() {
         &display_opts,
         &stylesheet_header,
     );
-    debug_assert_eq!(expected_output.lines().count(), rendered_content.lines().count());
+    debug_assert_eq!(
+        expected_output.lines().count(),
+        rendered_content.lines().count()
+    );
+}
+
+#[test]
+fn test_rendering_delimiter_in_code_block() {
+    let preprocessor = KatexProcessor;
+    let macros = HashMap::new();
+    let mut cfg = KatexConfig::default();
+    cfg.static_css = false;
+    let (inline_opts, display_opts) = mock_build_opts(macros, &cfg);
+    let raw_content = r"``` $\omega$ ```";
+    let build_root = PathBuf::new();
+    let build_dir = PathBuf::from("book");
+    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
+    let stylesheet_header = stylesheet_header_generator("".to_string());
+    let mut expected_output = String::from("");
+    expected_output.push_str(&stylesheet_header);
+    expected_output.push_str(raw_content);
+    let rendered_content = preprocessor.process_chapter(
+        &raw_content,
+        &inline_opts,
+        &display_opts,
+        &stylesheet_header,
+    );
+    debug_assert_eq!(expected_output, rendered_content);
 }
