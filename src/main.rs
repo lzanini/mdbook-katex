@@ -34,7 +34,7 @@ fn check_mdbook_version(version: &String) -> Result<(), Error> {
 
 fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), Error> {
     let renderer = sub_args.value_of("renderer").expect("Required argument");
-    let supported = pre.supports_renderer(&renderer);
+    let supported = pre.supports_renderer(renderer);
     if supported {
         Ok(())
     } else {
@@ -53,14 +53,14 @@ fn handle_preprocessing(
     // check mdbook version
     check_mdbook_version(&ctx.mdbook_version)?;
 
-    let processed_book = pre.run(&ctx, book.clone())?;
+    let processed_book = pre.run(ctx, book.clone())?;
     serde_json::to_writer(io::stdout(), &processed_book)?;
     Ok(())
 }
 
 fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Error> {
     check_mdbook_version(&ctx.version)?;
-    rend.render(&ctx)
+    rend.render(ctx)
 }
 
 fn main() -> Result<(), Error> {
@@ -75,7 +75,7 @@ fn main() -> Result<(), Error> {
     // determine what behaviour has been requested
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         // handle cmdline supports
-        return handle_supports(&pre, &sub_args);
+        return handle_supports(&pre, sub_args);
     } else if let Ok((ctx, book)) = CmdPreprocessor::parse_input(book_data.as_bytes()) {
         // handle preprocessing
         return handle_preprocessing(&pre, &ctx, &book);

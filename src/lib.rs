@@ -8,7 +8,6 @@ use std::vec::Vec;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
-use toml;
 
 use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
@@ -96,7 +95,7 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts) = self.build_opts(&ctx, &cfg);
+        let (inline_opts, display_opts) = self.build_opts(ctx, &cfg);
         // get stylesheet header
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
@@ -140,7 +139,7 @@ impl KatexProcessor {
                 .clone()
         };
         // load macros as a HashMap
-        let macros = Self::load_macros(&ctx, &cfg.macros);
+        let macros = Self::load_macros(ctx, &cfg.macros);
         // inline rendering options
         let inline_opts = configure_katex_opts()
             .display_mode(false)
@@ -164,12 +163,12 @@ impl KatexProcessor {
     ) -> HashMap<String, String> {
         // load macros as a HashMap
         let mut map = HashMap::new();
-        if let Some(path) = get_macro_path(&ctx.root, &macros_path) {
+        if let Some(path) = get_macro_path(&ctx.root, macros_path) {
             let macro_str = load_as_string(&path);
-            for couple in macro_str.split("\n") {
+            for couple in macro_str.split('\n') {
                 // only consider lines starting with a backslash
                 if let Some('\\') = couple.chars().next() {
-                    let couple: Vec<&str> = couple.splitn(2, ":").collect();
+                    let couple: Vec<&str> = couple.splitn(2, ':').collect();
                     map.insert(String::from(couple[0]), String::from(couple[1]));
                 }
             }
@@ -183,9 +182,9 @@ impl KatexProcessor {
         raw_content: &str,
         inline_opts: &katex::Opts,
         display_opts: &katex::Opts,
-        stylesheet_header: &String,
+        stylesheet_header: &str,
     ) -> String {
-        let mut rendered_content = stylesheet_header.clone();
+        let mut rendered_content = stylesheet_header.to_owned();
         const CODE_BLOCK_DELIMITER: &str = "```";
         let blocks = raw_content.split(CODE_BLOCK_DELIMITER);
         let mut outside_code_block = false;
@@ -193,7 +192,7 @@ impl KatexProcessor {
             outside_code_block = !outside_code_block;
             if outside_code_block {
                 // render display equations
-                let content = Self::render_between_delimiters(&block, "$$", display_opts, false);
+                let content = Self::render_between_delimiters(block, "$$", display_opts, false);
                 // render inline equations
                 let content = Self::render_between_delimiters(&content, "$", inline_opts, true);
                 rendered_content.push_str(&content);
@@ -215,11 +214,11 @@ impl KatexProcessor {
     ) -> String {
         let mut rendered_content = String::new();
         let mut inside_delimiters = false;
-        for item in Self::split(&raw_content, &delimiters, escape_backslash) {
+        for item in Self::split(raw_content, delimiters, escape_backslash) {
             if inside_delimiters {
                 // try to render equation
                 if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-                    rendered_content.push_str(&rendered.replace("\n", " "))
+                    rendered_content.push_str(&rendered.replace('\n', " "))
                 // if rendering fails, keep the unrendered equation
                 } else {
                     rendered_content.push_str(&item)
@@ -259,11 +258,8 @@ impl KatexProcessor {
     }
 }
 
-pub fn get_macro_path(root: &PathBuf, macros_path: &Option<String>) -> Option<PathBuf> {
-    match macros_path {
-        Some(path) => Some(root.join(PathBuf::from(path))),
-        _ => None,
-    }
+pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
+    macros_path.as_ref().map(|path| root.join(PathBuf::from(path)))
 }
 
 pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
@@ -283,16 +279,15 @@ pub fn load_as_string(path: &Path) -> String {
     };
 
     let mut string = String::new();
-    match file.read_to_string(&mut string) {
-        Err(why) => panic!("couldn't read {}: {}", display, why),
-        Ok(_) => (),
+    if let Err(why) = file.read_to_string(&mut string) {
+        panic!("couldn't read {}: {}", display, why)
     };
     string
 }
 
 fn katex_header(
-    build_root: &PathBuf,
-    build_dir: &PathBuf,
+    build_root: &Path,
+    build_dir: &Path,
     cfg: &KatexConfig,
 ) -> Result<Box<dyn Fn(String) -> String>, Error> {
     // constants
@@ -365,16 +360,16 @@ fn katex_header(
         Ok(Box::new(move |path: String| -> String {
             // generate a style element with a relative local path to
             // the katex stylesheet
-            String::from(format!(
+            format!(
                 "<link rel=\"stylesheet\" href=\"{}katex/katex.min.css\">\n\n",
                 path,
-            ))
+            )
         }))
     } else {
-        let stylesheet = String::from(format!(
+        let stylesheet = format!(
             "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
             stylesheet_url, integrity,
-        ));
+        );
         Ok(Box::new(move |_: String| -> String { stylesheet.clone() }))
     }
 }
