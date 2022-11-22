@@ -38,42 +38,31 @@ jobs:
       run: |
         $ZIP_PREFIX = "mdbook-katex2-v${{ steps.tagName.outputs.version }}"
         7z a "$ZIP_PREFIX-x86_64-pc-windows-msvc.zip" `
-             "./target/x86_64-pc-windows-msvc/release/mdbook-katex2.exe"
+             "./target/release/mdbook-katex2.exe"
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
         path: mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
 
-  linux-binaries:
-
-    strategy:
-      matrix:
-        target:
-         - x86_64-unknown-linux-gnu
-         - x86_64-unknown-linux-musl
+  gnu-linux-binary:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install musl tools
-      if: matrix.target == 'x86_64-unknown-linux-musl'
-      run: |
-        sudo apt-get install musl-tools
-
-    - name: Install ${{ matrix.target }} target
+    - name: Install x86_64-unknown-linux-gnu target
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
-        target: ${{ matrix.target }}
+        target: x86_64-unknown-linux-gnu
         override: true
 
     - name: Build mbdook-katex2
       run: |
-        cargo build --release --target ${{ matrix.target }}
+        cargo build --release
 
     - name: Get the version
       id: tagName
@@ -85,12 +74,14 @@ jobs:
       run: |
         TAR_FILE=mdbook-katex2-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_FILE-${{ matrix.target }}.tar.gz \
-                  target/${{ matrix.target }}/release/mdbook-katex2
+                  target/release/mdbook-katex2
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex2-v${{ steps.tagName.outputs.version }}-${{ matrix.target }}.tar.gz
+        path: mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+
+  # TODO: musl-linux-binary
 
   macos-binary:
 
@@ -129,7 +120,7 @@ jobs:
 
   deploy:
 
-    needs: [windows-binary, linux-binaries, macos-binary]
+    needs: [windows-binary, gnu-linux-binary, macos-binary]
 
     runs-on: ubuntu-latest
 
@@ -167,6 +158,5 @@ jobs:
           mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
           mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
           mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
-          mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
