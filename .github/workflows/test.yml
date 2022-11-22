@@ -21,6 +21,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
 
+      - uses: Swatinem/rust-cache@v2
+
       - run: cargo test
 
   test-macos:
@@ -33,6 +35,8 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+
+      - uses: Swatinem/rust-cache@v2
 
       - run: cargo test
 
@@ -47,6 +51,8 @@ jobs:
           toolchain: stable
           target: x86_64-pc-windows-msvc
           override: true
+
+      - uses: Swatinem/rust-cache@v2
 
       - run: cargo test
 
