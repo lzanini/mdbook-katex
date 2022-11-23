@@ -75,7 +75,7 @@ jobs:
     - name: Create tar
       run: |
         TAR_FILE=mdbook-katex2-v${{ steps.tagName.outputs.version }}
-        tar -czvf $TAR_FILE-${{ matrix.target }}.tar.gz \
+        tar -czvf $TAR_FILE-x86_64-unknown-linux-gnu.tar.gz \
                   target/release/mdbook-katex2
 
     - name: Upload binary artifact
