@@ -58,11 +58,11 @@ impl Default for KatexConfig {
 // renderers into their respective directories, ensuring that the
 // html renderer will always be at `{out_dir}/html`
 fn enforce_config(cfg: &mdbook::Config) {
-    if cfg.get("preprocessor.katex2").is_none() {
-        panic!("Missing `[preprocessor.katex2]` directive in `book.toml`!");
+    if cfg.get("preprocessor.katex").is_none() {
+        panic!("Missing `[preprocessor.katex]` directive in `book.toml`!");
     }
-    if cfg.get("output.katex2").is_none() {
-        panic!("Missing `[output.katex2]` directive in `book.toml`!");
+    if cfg.get("output.katex").is_none() {
+        panic!("Missing `[output.katex]` directive in `book.toml`!");
     }
     if cfg.get("output.html").is_none() {
         panic!("The katex preprocessor is only compatible with the html renderer!");
@@ -75,7 +75,7 @@ pub struct KatexProcessor;
 // in the `book/html/` directory
 impl Renderer for KatexProcessor {
     fn name(&self) -> &str {
-        "katex2"
+        "katex"
     }
 
     fn render(&self, ctx: &RenderContext) -> Result<()> {
@@ -87,7 +87,7 @@ impl Renderer for KatexProcessor {
 // preprocessor to inject rendered katex blocks and stylesheet
 impl Preprocessor for KatexProcessor {
     fn name(&self) -> &str {
-        "katex2"
+        "katex"
     }
 
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
@@ -116,7 +116,7 @@ impl Preprocessor for KatexProcessor {
     }
 
     fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer == "html" || renderer == "katex2"
+        renderer == "html" || renderer == "katex"
     }
 }
 
@@ -265,7 +265,7 @@ pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathB
 }
 
 pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
-    let cfg = match book_cfg.get("preprocessor.katex2") {
+    let cfg = match book_cfg.get("preprocessor.katex") {
         Some(raw) => raw.clone().try_into(),
         None => Ok(KatexConfig::default()),
     };

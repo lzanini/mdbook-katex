@@ -25,7 +25,7 @@ jobs:
         target: x86_64-pc-windows-msvc
         override: true
 
-    - name: Build mdbook-katex2
+    - name: Build mdbook-katex
       run: |
         cargo build --release
 
@@ -38,14 +38,14 @@ jobs:
 
     - name: Create zip
       run: |
-        $ZIP_PREFIX = "mdbook-katex2-v${{ steps.tagName.outputs.version }}"
+        $ZIP_PREFIX = "mdbook-katex-v${{ steps.tagName.outputs.version }}"
         7z a "$ZIP_PREFIX-x86_64-pc-windows-msvc.zip" `
-             "./target/release/mdbook-katex2.exe"
+             "./target/release/mdbook-katex.exe"
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
 
   gnu-linux-binary:
 
@@ -62,7 +62,7 @@ jobs:
         target: x86_64-unknown-linux-gnu
         override: true
 
-    - name: Build mbdook-katex2
+    - name: Build mbdook-katex
       run: |
         cargo build --release
 
@@ -74,14 +74,14 @@ jobs:
 
     - name: Create tar
       run: |
-        TAR_FILE=mdbook-katex2-v${{ steps.tagName.outputs.version }}
+        TAR_FILE=mdbook-katex-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_FILE-x86_64-unknown-linux-gnu.tar.gz \
-                  target/release/mdbook-katex2
+                  target/release/mdbook-katex
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
 
   # TODO: musl-linux-binary
 
@@ -99,7 +99,7 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Build mdbook-katex2
+    - name: Build mdbook-katex
       run: |
         cargo build --release
 
@@ -111,14 +111,14 @@ jobs:
 
     - name: Create tar
       run: |
-        TAR_PREFIX=mdbook-katex2-v${{ steps.tagName.outputs.version }}
+        TAR_PREFIX=mdbook-katex-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_PREFIX-x86_64-apple-darwin.tar.gz \
-                  target/release/mdbook-katex2
+                  target/release/mdbook-katex
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
 
   deploy:
 
@@ -157,8 +157,8 @@ jobs:
         name: v${{ steps.tagName.outputs.version }}
         files: |
           Cargo.lock
-          mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
-          mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
-          mdbook-katex2-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
