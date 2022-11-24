@@ -171,6 +171,7 @@ fn test_rendering_delimiter_in_code_block() {
     debug_assert_eq!(expected_output, rendered_content);
 }
 
+#[cfg(unix)]
 #[test]
 fn test_katex_rendering_vmatrix() {
     let math_expr = r"\begin{vmatrix}a&b\\c&d\end{vmatrix}";
@@ -182,6 +183,7 @@ fn test_katex_rendering_vmatrix() {
     let _ = katex::render_with_opts(math_expr, &display_opts).unwrap();
 }
 
+#[cfg(unix)]
 #[test]
 fn test_rendering_vmatrix() {
     let raw_content = r"$$\begin{vmatrix}a&b\\c&d\end{vmatrix}$$";
