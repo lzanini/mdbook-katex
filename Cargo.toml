@@ -27,7 +27,7 @@ lazy_static = "1.4"
 katex = "0.4.5"
 
 [target.'cfg(windows)'.dependencies]
-katex = { version = "0.4.5", default-features = false, features = ["duktape"] }
+katex = { version = "0.4.5", default-features = false, features = ["wasm-js"] }
 
 [profile.release]
 lto = true
