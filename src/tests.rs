@@ -183,7 +183,7 @@ fn test_rendering_delimiter_in_inline_code() {
 fn test_escaping_backtick() {
     let raw_content = r"\`$\omega$\`";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
-    let expected_output = stylesheet_header + "`<span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.4306em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.03588em;\">ω</span></span></span></span>`";
+    let expected_output = stylesheet_header + "\\`<span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.4306em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.03588em;\">ω</span></span></span></span>\\`";
     debug_assert_eq!(expected_output, rendered_content);
 }
 

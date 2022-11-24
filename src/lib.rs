@@ -209,6 +209,7 @@ impl KatexProcessor {
                             Self::render_between_delimiters(&content, "$", inline_opts, true);
                         rendered_content.push_str(&content);
                         if escape_next_backtick {
+                            rendered_content.push('\\');
                             rendered_content.push(INLINE_CODE_DELIMITER);
                         }
                     } else {
