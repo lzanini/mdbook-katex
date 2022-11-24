@@ -1,6 +1,3 @@
-extern crate katex;
-extern crate toml;
-
 use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::book::Book;
 use mdbook::errors::Error;
