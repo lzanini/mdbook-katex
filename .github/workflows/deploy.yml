@@ -78,9 +78,10 @@ jobs:
 
     - name: Create tar
       run: |
+        mv target/release/mdbook-katex mdbook-katex
         TAR_FILE=mdbook-katex-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_FILE-x86_64-unknown-linux-gnu.tar.gz \
-                  target/release/mdbook-katex
+                  mdbook-katex
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
@@ -117,9 +118,10 @@ jobs:
 
     - name: Create tar
       run: |
+        mv target/release/mdbook-katex mdbook-katex
         TAR_PREFIX=mdbook-katex-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_PREFIX-x86_64-apple-darwin.tar.gz \
-                  target/release/mdbook-katex
+                  mdbook-katex
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
