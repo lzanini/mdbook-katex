@@ -162,3 +162,17 @@ jobs:
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+        - uses: actions/checkout@v3
+        - uses: actions-rs/toolchain@v1
+          with:
+              toolchain: stable
+              override: true
+        - uses: katyo/publish-crates@v1
+          with:
+              registry-token: ${{ secrets.CARGO_CREDENTIALS }}
