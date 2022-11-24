@@ -186,16 +186,37 @@ impl KatexProcessor {
     ) -> String {
         let mut rendered_content = stylesheet_header.to_owned();
         const CODE_BLOCK_DELIMITER: &str = "```";
-        let blocks = raw_content.split(CODE_BLOCK_DELIMITER);
+        const INLINE_CODE_DELIMITER: char = '`';
         let mut outside_code_block = false;
-        for block in blocks {
+        for block in raw_content.split(CODE_BLOCK_DELIMITER) {
             outside_code_block = !outside_code_block;
             if outside_code_block {
-                // render display equations
-                let content = Self::render_between_delimiters(block, "$$", display_opts, false);
-                // render inline equations
-                let content = Self::render_between_delimiters(&content, "$", inline_opts, true);
-                rendered_content.push_str(&content);
+                // Preserve inline code.
+                let mut outside_inline_code = false;
+                for mut blob in block.split(INLINE_CODE_DELIMITER) {
+                    outside_inline_code = !outside_inline_code;
+                    if outside_inline_code {
+                        let escape_next_backtick = blob.ends_with('\\');
+                        if escape_next_backtick {
+                            outside_inline_code = false;
+                            blob = &blob[..(blob.len() - 1)]
+                        }
+                        // render display equations
+                        let content =
+                            Self::render_between_delimiters(blob, "$$", display_opts, false);
+                        // render inline equations
+                        let content =
+                            Self::render_between_delimiters(&content, "$", inline_opts, true);
+                        rendered_content.push_str(&content);
+                        if escape_next_backtick {
+                            rendered_content.push(INLINE_CODE_DELIMITER);
+                        }
+                    } else {
+                        rendered_content.push(INLINE_CODE_DELIMITER);
+                        rendered_content.push_str(blob);
+                        rendered_content.push(INLINE_CODE_DELIMITER);
+                    }
+                }
             } else {
                 rendered_content.push_str(CODE_BLOCK_DELIMITER);
                 rendered_content.push_str(block);
