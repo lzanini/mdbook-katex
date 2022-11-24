@@ -22,6 +22,11 @@ log = "0.4"
 reqwest = { version = "0.11", features = ["blocking"] }
 regex = "1.7"
 lazy_static = "1.4"
+
+[target.'cfg(unix)'.dependencies]
+katex = "0.4.5"
+
+[target.'cfg(windows)'.dependencies]
 katex = { version = "0.4.5", default-features = false, features = ["duktape"] }
 
 [profile.release]

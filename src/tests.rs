@@ -95,7 +95,6 @@ fn test_dollar_escaping() {
 }
 
 #[test]
-#[ignore]
 fn test_inline_rendering() {
     let (stylesheet_header, rendered_content) =
         test_render(r"Some text, $\nabla f(x) \in \mathbb{R}^n$, and more text.");
@@ -104,7 +103,6 @@ fn test_inline_rendering() {
 }
 
 #[test]
-#[ignore]
 fn test_display_rendering() {
     let (stylesheet_header, rendered_content) =
         test_render(r"Some text, $\nabla f(x) \in \mathbb{R}^n$, and more text.");
@@ -185,7 +183,6 @@ fn test_katex_rendering_vmatrix() {
 }
 
 #[test]
-#[ignore]
 fn test_rendering_vmatrix() {
     let raw_content = r"$$\begin{vmatrix}a&b\\c&d\end{vmatrix}$$";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
