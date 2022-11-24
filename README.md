@@ -1,4 +1,4 @@
-A preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
+`mdbook-katex` is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
 
 This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTex functions.
 
@@ -10,8 +10,8 @@ This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 First, install `mdbook-katex`
 
-```
-cargo install --git "https://github.com/lzanini/mdbook-katex"
+```shell
+cargo install mdbook-katex
 ```
 
 Then, add the following lines to your `book.toml` file
@@ -39,6 +39,7 @@ and a regular \$ symbol.
 LaTex equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
 ## Katex options
+
 The preprocessor supports passing options to the katex-rs crate in order
 to configure its behaviour. These options are specified under the
 `[preprocessor.katex]` directive.
@@ -84,3 +85,10 @@ These macros can then be used in your `.md` files
 
 $$ \grad f(x) \in \R{n}{p} $$
 ```
+
+## Caveats
+
+The build artifact of the book will be in a folder named `html` inside the directory you specify instead of being directly there.
+Consider this when you use `mdbook_katex` in your CIs.
+
+`$\backslash$` does not work, but you can use `$\setminus$` instead.

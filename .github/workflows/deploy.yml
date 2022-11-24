@@ -15,29 +15,19 @@ jobs:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
-        target: x86_64-pc-windows-gnu # Not msvc because of quickjs-rs dependency
+        target: x86_64-pc-windows-msvc
         override: true
-
-    - name: Setup msys64 and mingw64
-      run: |
-        $Paths = "C:\msys64\mingw64\bin;C:\msys64\usr\bin"
-        echo "$Paths" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "CARGO_BUILD_TARGET=x86_64-pc-windows-gnu" >> $GITHUB_ENV
 
     - name: Build mdbook-katex
       run: |
-        cargo build --release --target x86_64-pc-windows-gnu
-
-    - name: Strip mdbook-katex
-      run: |
-        strip target/x86_64-pc-windows-gnu/release/mdbook-katex.exe
+        cargo build --release
 
     - name: Get the version
       shell: bash
@@ -49,47 +39,32 @@ jobs:
     - name: Create zip
       run: |
         $ZIP_PREFIX = "mdbook-katex-v${{ steps.tagName.outputs.version }}"
-        7z a "$ZIP_PREFIX-x86_64-pc-windows-gnu.zip" `
-             "./target/x86_64-pc-windows-gnu/release/mdbook-katex.exe"
+        7z a "$ZIP_PREFIX-x86_64-pc-windows-msvc.zip" `
+             "./target/release/mdbook-katex.exe"
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.zip
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
 
-  linux-binaries:
-
-    strategy:
-      matrix:
-        target:
-         - x86_64-unknown-linux-gnu
-         - x86_64-unknown-linux-musl
+  gnu-linux-binary:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Install musl tools
-      if: matrix.target == 'x86_64-unknown-linux-musl'
-      run: |
-        sudo apt-get install musl-tools
-
-    - name: Install ${{ matrix.target }} target
+    - name: Install x86_64-unknown-linux-gnu target
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
-        target: ${{ matrix.target }}
+        target: x86_64-unknown-linux-gnu
         override: true
 
     - name: Build mbdook-katex
       run: |
-        cargo build --release --target ${{ matrix.target }}
-
-    - name: Strip mdbook-katex
-      run: |
-        strip target/${{ matrix.target }}/release/mdbook-katex
+        cargo build --release
 
     - name: Get the version
       id: tagName
@@ -100,20 +75,22 @@ jobs:
     - name: Create tar
       run: |
         TAR_FILE=mdbook-katex-v${{ steps.tagName.outputs.version }}
-        tar -czvf $TAR_FILE-${{ matrix.target }}.tar.gz \
-                  target/${{ matrix.target }}/release/mdbook-katex
+        tar -czvf $TAR_FILE-x86_64-unknown-linux-gnu.tar.gz \
+                  target/release/mdbook-katex
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-${{ matrix.target }}.tar.gz
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+
+  # TODO: musl-linux-binary
 
   macos-binary:
 
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
@@ -125,10 +102,6 @@ jobs:
     - name: Build mdbook-katex
       run: |
         cargo build --release
-
-    - name: Strip mdbook-katex
-      run: |
-        strip target/release/mdbook-katex
 
     - name: Get the version
       id: tagName
@@ -149,12 +122,12 @@ jobs:
 
   deploy:
 
-    needs: [windows-binary, linux-binaries, macos-binary]
+    needs: [windows-binary, gnu-linux-binary, macos-binary]
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Download artifacts
       uses: actions/download-artifact@v2
@@ -185,9 +158,8 @@ jobs:
         files: |
           Cargo.lock
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
-          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.zip
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
-          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -196,7 +168,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-        - uses: actions/checkout@v2
+        - uses: actions/checkout@v3
         - uses: actions-rs/toolchain@v1
           with:
               toolchain: stable
