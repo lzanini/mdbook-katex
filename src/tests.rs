@@ -95,6 +95,7 @@ fn test_dollar_escaping() {
 }
 
 #[test]
+#[ignore]
 fn test_inline_rendering() {
     let (stylesheet_header, rendered_content) =
         test_render(r"Some text, $\nabla f(x) \in \mathbb{R}^n$, and more text.");
@@ -103,6 +104,7 @@ fn test_inline_rendering() {
 }
 
 #[test]
+#[ignore]
 fn test_display_rendering() {
     let (stylesheet_header, rendered_content) =
         test_render(r"Some text, $\nabla f(x) \in \mathbb{R}^n$, and more text.");
@@ -169,4 +171,23 @@ fn test_rendering_delimiter_in_code_block() {
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header + raw_content;
     debug_assert_eq!(expected_output, rendered_content);
+}
+
+#[test]
+fn test_katex_rendering_vmatrix() {
+    let math_expr = r"\begin{vmatrix}a&b\\c&d\end{vmatrix}";
+    let cfg = KatexConfig {
+        static_css: false,
+        ..KatexConfig::default()
+    };
+    let (_, display_opts) = mock_build_opts(HashMap::new(), &cfg);
+    let _ = katex::render_with_opts(math_expr, &display_opts).unwrap();
+}
+
+#[test]
+#[ignore]
+fn test_rendering_vmatrix() {
+    let raw_content = r"$$\begin{vmatrix}a&b\\c&d\end{vmatrix}$$";
+    let (stylesheet_header, rendered_content) = test_render(raw_content);
+    debug_assert_ne!(stylesheet_header + r"\begin{vmatrix}a&b\\c&d\end{vmatrix}", rendered_content);
 }
