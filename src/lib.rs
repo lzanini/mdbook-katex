@@ -5,7 +5,6 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
-use lazy_static::lazy_static;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -347,18 +346,16 @@ fn katex_header(
         }
 
         // download all resources from stylesheet
-        lazy_static! {
-            static ref URL_PATTERN: Regex = Regex::new(r"(url)\s*[(]([^()]*)[)]").unwrap();
-            static ref REL_PATTERN: Regex = Regex::new(r"[.][.][/\\]|[.][/\\]").unwrap();
-        }
+        let url_pattern = Regex::new(r"(url)\s*[(]([^()]*)[)]").unwrap();
+        let rel_pattern = Regex::new(r"[.][.][/\\]|[.][/\\]").unwrap();
         let mut resources: HashSet<String> = HashSet::new();
-        for capture in URL_PATTERN.captures_iter(&stylesheet) {
+        for capture in url_pattern.captures_iter(&stylesheet) {
             let resource_name = String::from(&capture[2]);
             // sanitize resource path
             let mut resource_path = katex_dir_path.clone();
             resource_path.push(&resource_name);
             resource_path = PathBuf::from(String::from(
-                REL_PATTERN.replace_all(resource_path.to_str().unwrap(), ""),
+                rel_pattern.replace_all(resource_path.to_str().unwrap(), ""),
             ));
             // create resource path and populate content
             if !resource_path.as_path().exists() {
