@@ -29,6 +29,7 @@ pub struct KatexConfig {
     pub trust: bool,
     // other options
     pub static_css: bool,
+    pub include_src: bool,
     pub macros: Option<String>,
 }
 
@@ -47,6 +48,7 @@ impl Default for KatexConfig {
             trust: false,
             // other options
             static_css: false,
+            include_src: false,
             macros: None,
         }
     }
@@ -107,6 +109,7 @@ impl Preprocessor for KatexProcessor {
                         &inline_opts,
                         &display_opts,
                         &stylesheet_header,
+                        cfg.include_src,
                     )
                 }
             }
@@ -182,6 +185,7 @@ impl KatexProcessor {
         inline_opts: &katex::Opts,
         display_opts: &katex::Opts,
         stylesheet_header: &str,
+        include_src: bool,
     ) -> String {
         let mut rendered_content = stylesheet_header.to_owned();
         const CODE_BLOCK_DELIMITER: &str = "```";
@@ -201,11 +205,21 @@ impl KatexProcessor {
                             blob = &blob[..(blob.len() - 1)]
                         }
                         // render display equations
-                        let content =
-                            Self::render_between_delimiters(blob, "$$", display_opts, false);
+                        let content = Self::render_between_delimiters(
+                            blob,
+                            "$$",
+                            display_opts,
+                            false,
+                            include_src,
+                        );
                         // render inline equations
-                        let content =
-                            Self::render_between_delimiters(&content, "$", inline_opts, true);
+                        let content = Self::render_between_delimiters(
+                            &content,
+                            "$",
+                            inline_opts,
+                            true,
+                            include_src,
+                        );
                         rendered_content.push_str(&content);
                         if escape_next_backtick {
                             rendered_content.push('\\');
@@ -232,6 +246,7 @@ impl KatexProcessor {
         delimiters: &str,
         opts: &katex::Opts,
         escape_backslash: bool,
+        include_src: bool,
     ) -> String {
         let mut rendered_content = String::new();
         let mut inside_delimiters = false;
@@ -239,7 +254,12 @@ impl KatexProcessor {
             if inside_delimiters {
                 // try to render equation
                 if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-                    rendered_content.push_str(&rendered.replace('\n', " "))
+                    rendered_content.push_str(&rendered.replace('\n', " "));
+                    if include_src {
+                        rendered_content.push_str(r#"<span class="katex-src">"#);
+                        rendered_content.push_str(&item);
+                        rendered_content.push_str(r"</span>");
+                    }
                 // if rendering fails, keep the unrendered equation
                 } else {
                     rendered_content.push_str(&item)
