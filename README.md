@@ -61,6 +61,15 @@ There are also options to configure the behaviour of the preprocessor:
 | :- | :- | :- |
 | `static-css` | `false` | Generates fully static html pages with katex styling |
 | `macros` | `None` | Path to macros file (see [Custom macros](#custom-macros)) |
+| `include-src` | `false` | Append the source code for the rendered math expressions after them |
+
+For example:
+
+```toml
+[preprocessor.katex]
+static-css = false
+include-src = false
+```
 
 ## Custom macros
 
@@ -85,6 +94,19 @@ These macros can then be used in your `.md` files
 
 $$ \grad f(x) \in \R{n}{p} $$
 ```
+
+## Including math source
+
+This option is added so users can have a convenient way to copy the source code of math expressions when they view the book.
+
+When `include-src` is set to `true`, the included math source code is appended to each rendered math expression.
+Math expressions are `span` elements with `class="katex`.
+Appended math source code is wrapped in `span` elements with `class="katex-src"`.
+
+The math source code is included in a minimal fashion, and it is up to the users to write custom CSS and JavaScript to make use of it.
+For more information about adding custom CSS and JavaScript in `mdbook`, see [additional-css and additional-js](https://rust-lang.github.io/mdBook/format/configuration/renderers.html#html-renderer-options).
+
+If you need more information about this feature, please check the issues or file a new issue.
 
 ## Caveats
 
