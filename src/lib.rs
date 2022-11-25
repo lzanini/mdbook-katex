@@ -257,7 +257,7 @@ impl KatexProcessor {
                     rendered_content.push_str(&rendered.replace('\n', " "));
                     if include_src {
                         rendered_content.push_str(r#"<span class="katex-src">"#);
-                        rendered_content.push_str(&item);
+                        rendered_content.push_str(&item.replace('\\', r"\\"));
                         rendered_content.push_str(r"</span>");
                     }
                 // if rendering fails, keep the unrendered equation
