@@ -103,6 +103,25 @@ When `include-src` is set to `true`, the included math source code is appended t
 Math expressions are `span` elements with `class="katex`.
 Appended math source code is wrapped in `span` elements with `class="katex-src"`.
 
+For example,
+
+```markdown
+Define $f(x)$:
+
+$$
+f(x)=x^2\\
+x\in\R
+$$
+```
+
+is rendered as (the content of the `katex` `span`s are omitted and represented as `…`)
+
+```html
+Define <span class="katex">…</span><span class="katex-src">f(x)</span>:
+
+<span class="katex-display"><span class="katex">…</span></span><span class="katex-src"><br>f(x)=x^2\\\\<br>x\\in\\R<br></span>
+```
+
 The math source code is included in a minimal fashion, and it is up to the users to write custom CSS and JavaScript to make use of it.
 For more information about adding custom CSS and JavaScript in `mdbook`, see [additional-css and additional-js](https://rust-lang.github.io/mdBook/format/configuration/renderers.html#html-renderer-options).
 
