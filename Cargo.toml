@@ -13,12 +13,11 @@ repository = "https://github.com/lzanini/mdbook-katex"
 
 [dependencies]
 clap = "3.2.23"
-mdbook = "0.4.21"
+mdbook = "0.4.22"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 toml = "0.5.9"
-log = "0.4"
 reqwest = { version = "0.11", features = ["blocking"] }
 regex = "1.7"
 
