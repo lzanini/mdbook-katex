@@ -62,13 +62,13 @@ fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Erro
 }
 
 fn main() -> Result<(), Error> {
-    // grab book data from stdin
-    let mut book_data = String::new();
-    io::stdin().read_to_string(&mut book_data)?;
-
     // set up app
     let matches = make_app().get_matches();
     let pre = KatexProcessor;
+
+    // grab book data from stdin
+    let mut book_data = String::new();
+    io::stdin().read_to_string(&mut book_data)?;
 
     // determine what behaviour has been requested
     if let Some(sub_args) = matches.subcommand_matches("supports") {
