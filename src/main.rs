@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
@@ -8,6 +8,7 @@ use std::io::{self, Read};
 
 pub fn make_app() -> App<'static> {
     App::new("mdbook-katex")
+        .version(crate_version!())
         .about("A preprocessor that renders KaTex equations to HTML.")
         .subcommand(
             SubCommand::with_name("supports")
