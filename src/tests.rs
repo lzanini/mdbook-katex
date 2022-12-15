@@ -74,10 +74,10 @@ fn test_render_with_cfg(
         .iter()
         .map(|raw_content| {
             rt.block_on(process_chapter(
-                raw_content,
-                &inline_opts,
-                &display_opts,
-                &stylesheet_header,
+                (*raw_content).to_owned(),
+                inline_opts.clone(),
+                display_opts.clone(),
+                stylesheet_header.clone(),
                 cfg.include_src,
             ))
         })

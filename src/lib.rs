@@ -107,23 +107,24 @@ impl Preprocessor for KatexProcessor {
         // get stylesheet header
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
-        let mut contents = VecDeque::new();
+        let mut tasks = Vec::new();
         for item in book.iter() {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
                     let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
-                    contents.push_back(
-                        process_chapter(
-                            &chapter.content,
-                            &inline_opts,
-                            &display_opts,
-                            &stylesheet_header,
-                            cfg.include_src,
-                        )
-                        .await,
-                    );
+                    tasks.push(spawn(process_chapter(
+                        chapter.content.clone(),
+                        inline_opts.clone(),
+                        display_opts.clone(),
+                        stylesheet_header.clone(),
+                        cfg.include_src,
+                    )));
                 }
             }
+        }
+        let mut contents = VecDeque::with_capacity(tasks.len());
+        for task in tasks {
+            contents.push_back(task.await.expect("A tokio task panicked."));
         }
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
@@ -190,10 +191,10 @@ fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashM
 
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
 async fn process_chapter(
-    raw_content: &str,
-    inline_opts: &katex::Opts,
-    display_opts: &katex::Opts,
-    stylesheet_header: &str,
+    raw_content: String,
+    inline_opts: Opts,
+    display_opts: Opts,
+    stylesheet_header: String,
     include_src: bool,
 ) -> String {
     let mut outside_code_block = false;
