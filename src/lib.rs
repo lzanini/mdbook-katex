@@ -15,6 +15,7 @@ use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
 use mdbook::utils::fs::path_to_root;
+use tokio::spawn;
 
 const CODE_BLOCK_DELIMITER: &str = "```";
 const INLINE_CODE_DELIMITER: char = '`';
@@ -192,138 +193,128 @@ impl KatexProcessor {
         stylesheet_header: &str,
         include_src: bool,
     ) -> String {
-        let mut rendered_content = stylesheet_header.to_owned();
         let mut outside_code_block = false;
+        let mut tasks = Vec::new();
         for block in raw_content.split(CODE_BLOCK_DELIMITER) {
             outside_code_block = !outside_code_block;
-            rendered_content.push_str(
-                &self
-                    .process_block(
-                        block,
-                        outside_code_block,
-                        display_opts,
-                        inline_opts,
-                        include_src,
-                    )
-                    .await,
-            );
+            tasks.push(spawn(process_block(
+                block.to_owned(),
+                outside_code_block,
+                display_opts.clone(),
+                inline_opts.clone(),
+                include_src,
+            )));
         }
-        rendered_content
+        let mut rendered_vec = Vec::with_capacity(tasks.len() + 1);
+        rendered_vec.push(stylesheet_header.to_owned());
+        for task in tasks {
+            rendered_vec.push(task.await.expect("A tokio task panicked."));
+        }
+        rendered_vec.join("")
     }
+}
 
-    /// Process a `block` that is either a full code block or not.
-    async fn process_block(
-        &self,
-        block: &str,
-        outside_code_block: bool,
-        display_opts: &Opts,
-        inline_opts: &Opts,
-        include_src: bool,
-    ) -> String {
-        let mut rendered_content = String::with_capacity(block.len());
-        if outside_code_block {
-            // Preserve inline code.
-            let mut outside_inline_code = false;
-            for mut blob in block.split(INLINE_CODE_DELIMITER) {
-                outside_inline_code = !outside_inline_code;
-                if outside_inline_code {
-                    let escape_next_backtick = blob.ends_with('\\');
-                    if escape_next_backtick {
-                        outside_inline_code = false;
-                        blob = &blob[..(blob.len() - 1)]
-                    }
-                    // render display equations
-                    let content = Self::render_between_delimiters(
-                        blob,
-                        "$$",
-                        display_opts,
-                        false,
-                        include_src,
-                    );
-                    // render inline equations
-                    let content = Self::render_between_delimiters(
-                        &content,
-                        "$",
-                        inline_opts,
-                        true,
-                        include_src,
-                    );
-                    rendered_content.push_str(&content);
-                    if escape_next_backtick {
-                        rendered_content.push('\\');
-                        rendered_content.push(INLINE_CODE_DELIMITER);
-                    }
-                } else {
-                    rendered_content.push(INLINE_CODE_DELIMITER);
-                    rendered_content.push_str(blob);
+/// Process a `block` that is either a full code block or not.
+pub async fn process_block(
+    block: String,
+    outside_code_block: bool,
+    display_opts: Opts,
+    inline_opts: Opts,
+    include_src: bool,
+) -> String {
+    let mut rendered_content = String::with_capacity(block.len());
+    if outside_code_block {
+        // Preserve inline code.
+        let mut outside_inline_code = false;
+        for mut blob in block.split(INLINE_CODE_DELIMITER) {
+            outside_inline_code = !outside_inline_code;
+            if outside_inline_code {
+                let escape_next_backtick = blob.ends_with('\\');
+                if escape_next_backtick {
+                    outside_inline_code = false;
+                    blob = &blob[..(blob.len() - 1)]
+                }
+                // render display equations
+                let content =
+                    render_between_delimiters(blob, "$$", &display_opts, false, include_src);
+                // render inline equations
+                let content =
+                    render_between_delimiters(&content, "$", &inline_opts, true, include_src);
+                rendered_content.push_str(&content);
+                if escape_next_backtick {
+                    rendered_content.push('\\');
                     rendered_content.push(INLINE_CODE_DELIMITER);
                 }
+            } else {
+                rendered_content.push(INLINE_CODE_DELIMITER);
+                rendered_content.push_str(blob);
+                rendered_content.push(INLINE_CODE_DELIMITER);
             }
-        } else {
-            rendered_content.push_str(CODE_BLOCK_DELIMITER);
-            rendered_content.push_str(block);
-            rendered_content.push_str(CODE_BLOCK_DELIMITER);
         }
-        rendered_content
+    } else {
+        rendered_content.push_str(CODE_BLOCK_DELIMITER);
+        rendered_content.push_str(&block);
+        rendered_content.push_str(CODE_BLOCK_DELIMITER);
     }
+    rendered_content
+}
 
-    // render equations between given delimiters, with specified options
-    fn render_between_delimiters(
-        raw_content: &str,
-        delimiters: &str,
-        opts: &katex::Opts,
-        escape_backslash: bool,
-        include_src: bool,
-    ) -> String {
-        let mut rendered_content = String::new();
-        let mut inside_delimiters = false;
-        for item in Self::split(raw_content, delimiters, escape_backslash) {
-            if inside_delimiters {
-                // try to render equation
-                if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-                    rendered_content.push_str(&rendered.replace('\n', " "));
-                    if include_src {
-                        rendered_content.push_str(r#"<span class="katex-src">"#);
-                        rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
-                        rendered_content.push_str(r"</span>");
-                    }
-                // if rendering fails, keep the unrendered equation
-                } else {
-                    rendered_content.push_str(&item)
+// render equations between given delimiters, with specified options
+pub fn render_between_delimiters(
+    raw_content: &str,
+    delimiters: &str,
+    opts: &katex::Opts,
+    escape_backslash: bool,
+    include_src: bool,
+) -> String {
+    let mut rendered_content = String::new();
+    let mut inside_delimiters = false;
+    for item in split(raw_content, delimiters, escape_backslash) {
+        if inside_delimiters {
+            // try to render equation
+            if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+                rendered_content.push_str(&rendered.replace('\n', " "));
+                if include_src {
+                    rendered_content.push_str(r#"<span class="katex-src">"#);
+                    rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
+                    rendered_content.push_str(r"</span>");
                 }
-            // outside delimiters
+            // if rendering fails, keep the unrendered equation
             } else {
                 rendered_content.push_str(&item)
             }
-            inside_delimiters = !inside_delimiters;
+        // outside delimiters
+        } else {
+            rendered_content.push_str(&item)
         }
-        rendered_content
+        inside_delimiters = !inside_delimiters;
     }
+    rendered_content
+}
 
-    fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
-        let mut result = Vec::new();
-        let mut splits = string.split(separator);
-        let mut current_split = splits.next();
-        // iterate over splits
-        while let Some(substring) = current_split {
-            let mut result_split = String::from(substring);
-            if escape_backslash {
-                // while the current split ends with a backslash
-                while let Some('\\') = current_split.unwrap().chars().last() {
-                    // removes the backslash, add the separator back, and add the next split
-                    result_split.pop();
-                    result_split.push_str(separator);
-                    current_split = splits.next();
-                    if let Some(split) = current_split {
-                        result_split.push_str(split);
-                    }
+fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut splits = string.split(separator);
+    let mut current_split = splits.next();
+    // iterate over splits
+    while let Some(substring) = current_split {
+        let mut result_split = String::from(substring);
+        if escape_backslash {
+            // while the current split ends with a backslash
+            while let Some('\\') = current_split.unwrap().chars().last() {
+                // removes the backslash, add the separator back, and add the next split
+                result_split.pop();
+                result_split.push_str(separator);
+                current_split = splits.next();
+                if let Some(split) = current_split {
+                    result_split.push_str(split);
                 }
             }
-            result.push(result_split);
-            current_split = splits.next()
         }
-        result
+        result.push(result_split);
+        current_split = splits.next()
     }
+    result
 }
 
 pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
