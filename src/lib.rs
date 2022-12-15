@@ -97,7 +97,8 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+    #[tokio::main]
+    async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
         // enforce config requirements
         enforce_config(&ctx.config);
         // parse TOML config
@@ -107,20 +108,23 @@ impl Preprocessor for KatexProcessor {
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
         let mut contents = VecDeque::new();
-        book.iter().for_each(|item| {
+        for item in book.iter() {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
                     let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
-                    contents.push_back(process_chapter(
-                        &chapter.content,
-                        &inline_opts,
-                        &display_opts,
-                        &stylesheet_header,
-                        cfg.include_src,
-                    ));
+                    contents.push_back(
+                        process_chapter(
+                            &chapter.content,
+                            &inline_opts,
+                            &display_opts,
+                            &stylesheet_header,
+                            cfg.include_src,
+                        )
+                        .await,
+                    );
                 }
             }
-        });
+        }
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if chapter.path.is_some() {
@@ -185,7 +189,6 @@ fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashM
 }
 
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
-#[tokio::main]
 async fn process_chapter(
     raw_content: &str,
     inline_opts: &katex::Opts,

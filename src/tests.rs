@@ -1,5 +1,6 @@
 use super::*;
 use std::str::FromStr;
+use tokio::runtime::Runtime;
 
 #[test]
 fn test_name() {
@@ -68,16 +69,17 @@ fn test_render_with_cfg(
     let build_dir = PathBuf::from("book");
     let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
+    let rt = Runtime::new().unwrap();
     let rendered = raw_contents
         .iter()
         .map(|raw_content| {
-            process_chapter(
+            rt.block_on(process_chapter(
                 raw_content,
                 &inline_opts,
                 &display_opts,
                 &stylesheet_header,
                 cfg.include_src,
-            )
+            ))
         })
         .collect();
     (stylesheet_header, rendered)
