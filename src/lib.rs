@@ -107,20 +107,24 @@ impl Preprocessor for KatexProcessor {
         // get stylesheet header
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
-        let mut tasks = Vec::new();
-        for item in book.iter() {
+        let mut raw_contents = Vec::new();
+        book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
-                    let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
-                    tasks.push(spawn(process_chapter(
-                        chapter.content.clone(),
-                        inline_opts.clone(),
-                        display_opts.clone(),
-                        stylesheet_header.clone(),
-                        cfg.include_src,
-                    )));
+                    raw_contents.push((path.clone(), chapter.content.clone()));
                 }
             }
+        });
+        let mut tasks = Vec::with_capacity(raw_contents.len());
+        for (path, content) in raw_contents {
+            let stylesheet_header = stylesheet_header_generator(path_to_root(path));
+            tasks.push(spawn(process_chapter(
+                content,
+                inline_opts.clone(),
+                display_opts.clone(),
+                stylesheet_header,
+                cfg.include_src,
+            )));
         }
         let mut contents = VecDeque::with_capacity(tasks.len());
         for task in tasks {
