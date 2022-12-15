@@ -198,31 +198,30 @@ async fn process_chapter(
     include_src: bool,
 ) -> String {
     let mut outside_code_block = false;
-    let mut tasks = Vec::new();
+    let mut rendered_vec = Vec::new();
+    rendered_vec.push(stylesheet_header.to_owned());
     for block in raw_content.split(CODE_BLOCK_DELIMITER) {
         outside_code_block = !outside_code_block;
-        tasks.push(spawn(process_block(
-            block.to_owned(),
-            outside_code_block,
-            display_opts.clone(),
-            inline_opts.clone(),
-            include_src,
-        )));
-    }
-    let mut rendered_vec = Vec::with_capacity(tasks.len() + 1);
-    rendered_vec.push(stylesheet_header.to_owned());
-    for task in tasks {
-        rendered_vec.push(task.await.expect("A tokio task panicked."));
+        rendered_vec.push(
+            process_block(
+                block,
+                outside_code_block,
+                &display_opts,
+                &inline_opts,
+                include_src,
+            )
+            .await,
+        );
     }
     rendered_vec.join("")
 }
 
 /// Process a `block` that is either a full code block or not.
 pub async fn process_block(
-    block: String,
+    block: &str,
     outside_code_block: bool,
-    display_opts: Opts,
-    inline_opts: Opts,
+    display_opts: &Opts,
+    inline_opts: &Opts,
     include_src: bool,
 ) -> String {
     let mut rendered_content = String::with_capacity(block.len());
@@ -270,7 +269,7 @@ pub async fn process_block(
         }
     } else {
         rendered_content.push_str(CODE_BLOCK_DELIMITER);
-        rendered_content.push_str(&block);
+        rendered_content.push_str(block);
         rendered_content.push_str(CODE_BLOCK_DELIMITER);
     }
     rendered_content
