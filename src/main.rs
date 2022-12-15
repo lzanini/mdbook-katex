@@ -1,4 +1,4 @@
-use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
+use clap::{crate_version, Arg, ArgMatches, Command};
 use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
@@ -6,13 +6,13 @@ use mdbook::renderer::{RenderContext, Renderer};
 use mdbook_katex::KatexProcessor;
 use std::io::{self, Read};
 
-pub fn make_app() -> App<'static> {
-    App::new("mdbook-katex")
+pub fn make_app() -> Command {
+    Command::new("mdbook-katex")
         .version(crate_version!())
         .about("A preprocessor that renders KaTex equations to HTML.")
         .subcommand(
-            SubCommand::with_name("supports")
-                .arg(Arg::with_name("renderer").required(true))
+            Command::new("supports")
+                .arg(Arg::new("renderer").required(true))
                 .about("Check whether a renderer is supported by this preprocessor"),
         )
 }
@@ -30,7 +30,9 @@ fn check_mdbook_version(version: &String) {
 }
 
 fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), Error> {
-    let renderer = sub_args.value_of("renderer").expect("Required argument");
+    let renderer = sub_args
+        .get_one::<String>("renderer")
+        .expect("Required argument");
     let supported = pre.supports_renderer(renderer);
     if supported {
         Ok(())
