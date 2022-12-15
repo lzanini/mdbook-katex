@@ -106,7 +106,7 @@ impl Preprocessor for KatexProcessor {
         let (inline_opts, display_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let stylesheet_header_generator =
-            katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
+            katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
         let mut raw_contents = Vec::new();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
@@ -385,7 +385,7 @@ pub fn load_as_string(path: &Path) -> String {
     string
 }
 
-fn katex_header(
+async fn katex_header(
     build_root: &Path,
     build_dir: &Path,
     cfg: &KatexConfig,
@@ -410,8 +410,8 @@ fn katex_header(
         let mut stylesheet: String;
         if !stylesheet_path.exists() {
             // download stylesheet content
-            let stylesheet_response = reqwest::blocking::get(stylesheet_url)?;
-            stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes()?)?);
+            let stylesheet_response = reqwest::get(stylesheet_url).await?;
+            stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes().await?)?);
             // create stylesheet file and populate it with the content
             let mut stylesheet_file = File::create(stylesheet_path.as_path())?;
             stylesheet_file.write_all(stylesheet.as_str().as_bytes())?;
@@ -446,9 +446,9 @@ fn katex_header(
                     let mut resource_file = File::create(resource_path)?;
                     // download content
                     let resource_url = format!("{}{}", cdn_root, &resource_name);
-                    let resource_response = reqwest::blocking::get(resource_url)?;
+                    let resource_response = reqwest::get(resource_url).await?;
                     // populate file with content
-                    resource_file.write_all(&resource_response.bytes()?)?;
+                    resource_file.write_all(&resource_response.bytes().await?)?;
                 }
             }
         }

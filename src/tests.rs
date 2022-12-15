@@ -67,7 +67,10 @@ fn test_render_with_cfg(
     let (inline_opts, display_opts) = mock_build_opts(macros, &cfg);
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
-    let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
+    let rt = Runtime::new().unwrap();
+    let stylesheet_header_generator = rt
+        .block_on(katex_header(&build_root, &build_dir, &cfg))
+        .unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
     let rt = Runtime::new().unwrap();
     let rendered = raw_contents
