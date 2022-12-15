@@ -5,7 +5,11 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+#[cfg(feature = "log")]
+use env_logger::{Builder, Target};
 use katex::Opts;
+#[cfg(feature = "log")]
+use log::debug;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -97,6 +101,13 @@ impl Preprocessor for KatexProcessor {
     }
 
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+        #[cfg(feature = "log")]
+        Builder::from_default_env()
+            .target(Target::Stderr)
+            .format_timestamp_millis()
+            .init();
+        #[cfg(feature = "log")]
+        debug!("Preprocessor started.");
         // enforce config requirements
         enforce_config(&ctx.config);
         // parse TOML config
@@ -108,6 +119,8 @@ impl Preprocessor for KatexProcessor {
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
+                    #[cfg(feature = "log")]
+                    debug!("Processing chapter {path:?}.");
                     let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
                     chapter.content = self.process_chapter(
                         &chapter.content,

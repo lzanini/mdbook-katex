@@ -1071,7 +1071,9 @@ name = "mdbook-katex"
 version = "0.2.19"
 dependencies = [
  "clap",
+ "env_logger",
  "katex",
+ "log",
  "mdbook",
  "regex",
  "reqwest",
