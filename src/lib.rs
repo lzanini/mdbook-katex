@@ -226,20 +226,34 @@ pub async fn process_block(
     if outside_code_block {
         // Preserve inline code.
         let mut outside_inline_code = false;
-        for mut blob in block.split(INLINE_CODE_DELIMITER) {
+        for blob in block.split(INLINE_CODE_DELIMITER) {
             outside_inline_code = !outside_inline_code;
             if outside_inline_code {
                 let escape_next_backtick = blob.ends_with('\\');
-                if escape_next_backtick {
+                let my_blob = if escape_next_backtick {
                     outside_inline_code = false;
-                    blob = &blob[..(blob.len() - 1)]
-                }
+                    blob[..(blob.len() - 1)].to_owned()
+                } else {
+                    blob.to_owned()
+                };
                 // render display equations
-                let content =
-                    render_between_delimiters(blob, "$$", &display_opts, false, include_src);
+                let content = render_between_delimiters(
+                    my_blob,
+                    "$$".to_owned(),
+                    display_opts.clone(),
+                    false,
+                    include_src,
+                )
+                .await;
                 // render inline equations
-                let content =
-                    render_between_delimiters(&content, "$", &inline_opts, true, include_src);
+                let content = render_between_delimiters(
+                    content,
+                    "$".to_owned(),
+                    inline_opts.clone(),
+                    true,
+                    include_src,
+                )
+                .await;
                 rendered_content.push_str(&content);
                 if escape_next_backtick {
                     rendered_content.push('\\');
@@ -260,38 +274,48 @@ pub async fn process_block(
 }
 
 // render equations between given delimiters, with specified options
-pub fn render_between_delimiters(
-    raw_content: &str,
-    delimiters: &str,
-    opts: &katex::Opts,
+pub async fn render_between_delimiters(
+    raw_content: String,
+    delimiters: String,
+    opts: Opts,
     escape_backslash: bool,
     include_src: bool,
 ) -> String {
-    let mut rendered_content = String::new();
+    let mut rendered_vec = Vec::new();
     let mut inside_delimiters = false;
-    for item in split(raw_content, delimiters, escape_backslash) {
-        if inside_delimiters {
-            // try to render equation
-            if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-                rendered_content.push_str(&rendered.replace('\n', " "));
-                if include_src {
-                    rendered_content.push_str(r#"<span class="katex-src">"#);
-                    rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
-                    rendered_content.push_str(r"</span>");
-                }
-            // if rendering fails, keep the unrendered equation
-            } else {
-                rendered_content.push_str(&item)
+    for item in split(&raw_content, &delimiters, escape_backslash) {
+        rendered_vec.push(render(item, inside_delimiters, opts.clone(), include_src).await);
+        inside_delimiters = !inside_delimiters;
+    }
+    rendered_vec.join("")
+}
+
+pub async fn render(
+    item: String,
+    inside_delimiters: bool,
+    opts: Opts,
+    include_src: bool,
+) -> String {
+    let mut rendered_content = String::new();
+    if inside_delimiters {
+        // try to render equation
+        if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+            rendered_content.push_str(&rendered.replace('\n', " "));
+            if include_src {
+                rendered_content.push_str(r#"<span class="katex-src">"#);
+                rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
+                rendered_content.push_str(r"</span>");
             }
-        // outside delimiters
+        // if rendering fails, keep the unrendered equation
         } else {
             rendered_content.push_str(&item)
         }
-        inside_delimiters = !inside_delimiters;
+    // outside delimiters
+    } else {
+        rendered_content.push_str(&item)
     }
     rendered_content
 }
-
 fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
     let mut result = Vec::new();
     let mut splits = string.split(separator);
