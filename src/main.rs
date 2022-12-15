@@ -17,16 +17,15 @@ pub fn make_app() -> App<'static> {
         )
 }
 
-fn check_mdbook_version(version: &String) -> Result<(), Error> {
+fn check_mdbook_version(version: &String) {
     if version != mdbook::MDBOOK_VERSION {
-        Err(Error::msg(format!(
-            "Katex preprocessor/renderer using different mdbook version, {},\
-            than it was built against, {}",
+        eprintln!(
+            "This mdbook-katex was built against mdbook v{}, \
+            but we are being called from mdbook v{}. \
+            If you have any issue, this might be a reason.",
             mdbook::MDBOOK_VERSION,
             &version
-        )))
-    } else {
-        Ok(())
+        )
     }
 }
 
@@ -48,8 +47,7 @@ fn handle_preprocessing(
     ctx: &PreprocessorContext,
     book: &Book,
 ) -> Result<(), Error> {
-    // check mdbook version
-    check_mdbook_version(&ctx.mdbook_version)?;
+    check_mdbook_version(&ctx.mdbook_version);
 
     let processed_book = pre.run(ctx, book.clone())?;
     serde_json::to_writer(io::stdout(), &processed_book)?;
@@ -57,7 +55,7 @@ fn handle_preprocessing(
 }
 
 fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Error> {
-    check_mdbook_version(&ctx.version)?;
+    check_mdbook_version(&ctx.version);
     rend.render(ctx)
 }
 
@@ -83,7 +81,6 @@ fn main() -> Result<(), Error> {
     }
 
     Err(Error::msg(
-        "The katex preprocessor/renderer did not understand what you wanted\
-        to do",
+        "mdbook-katex did not recognize the argument passed in.",
     ))
 }
