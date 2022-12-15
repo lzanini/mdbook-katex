@@ -63,7 +63,6 @@ fn test_render_with_cfg(
     macros: HashMap<String, String>,
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
-    let preprocessor = KatexProcessor;
     let (inline_opts, display_opts) = mock_build_opts(macros, &cfg);
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
@@ -72,7 +71,7 @@ fn test_render_with_cfg(
     let rendered = raw_contents
         .iter()
         .map(|raw_content| {
-            preprocessor.process_chapter(
+            process_chapter(
                 raw_content,
                 &inline_opts,
                 &display_opts,

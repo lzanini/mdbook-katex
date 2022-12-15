@@ -101,7 +101,7 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts) = self.build_opts(ctx, &cfg);
+        let (inline_opts, display_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
@@ -109,7 +109,7 @@ impl Preprocessor for KatexProcessor {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
                     let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
-                    chapter.content = self.process_chapter(
+                    chapter.content = process_chapter(
                         &chapter.content,
                         &inline_opts,
                         &display_opts,
@@ -127,91 +127,81 @@ impl Preprocessor for KatexProcessor {
     }
 }
 
-impl KatexProcessor {
-    fn build_opts(
-        &self,
-        ctx: &PreprocessorContext,
-        cfg: &KatexConfig,
-    ) -> (katex::Opts, katex::Opts) {
-        let configure_katex_opts = || -> katex::OptsBuilder {
-            katex::Opts::builder()
-                .leqno(cfg.leqno)
-                .fleqn(cfg.fleqn)
-                .throw_on_error(cfg.throw_on_error)
-                .error_color(cfg.error_color.clone())
-                .min_rule_thickness(cfg.min_rule_thickness)
-                .max_size(cfg.max_size)
-                .max_expand(cfg.max_expand)
-                .trust(cfg.trust)
-                .clone()
-        };
-        // load macros as a HashMap
-        let macros = Self::load_macros(ctx, &cfg.macros);
-        // inline rendering options
-        let inline_opts = configure_katex_opts()
-            .display_mode(false)
-            .output_type(katex::OutputType::Html)
-            .macros(macros.clone())
-            .build()
-            .unwrap();
-        // display rendering options
-        let display_opts = configure_katex_opts()
-            .display_mode(true)
-            .output_type(katex::OutputType::Html)
-            .macros(macros)
-            .build()
-            .unwrap();
-        (inline_opts, display_opts)
-    }
+fn build_opts(ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+    let configure_katex_opts = || -> katex::OptsBuilder {
+        katex::Opts::builder()
+            .leqno(cfg.leqno)
+            .fleqn(cfg.fleqn)
+            .throw_on_error(cfg.throw_on_error)
+            .error_color(cfg.error_color.clone())
+            .min_rule_thickness(cfg.min_rule_thickness)
+            .max_size(cfg.max_size)
+            .max_expand(cfg.max_expand)
+            .trust(cfg.trust)
+            .clone()
+    };
+    // load macros as a HashMap
+    let macros = load_macros(ctx, &cfg.macros);
+    // inline rendering options
+    let inline_opts = configure_katex_opts()
+        .display_mode(false)
+        .output_type(katex::OutputType::Html)
+        .macros(macros.clone())
+        .build()
+        .unwrap();
+    // display rendering options
+    let display_opts = configure_katex_opts()
+        .display_mode(true)
+        .output_type(katex::OutputType::Html)
+        .macros(macros)
+        .build()
+        .unwrap();
+    (inline_opts, display_opts)
+}
 
-    fn load_macros(
-        ctx: &PreprocessorContext,
-        macros_path: &Option<String>,
-    ) -> HashMap<String, String> {
-        // load macros as a HashMap
-        let mut map = HashMap::new();
-        if let Some(path) = get_macro_path(&ctx.root, macros_path) {
-            let macro_str = load_as_string(&path);
-            for couple in macro_str.split('\n') {
-                // only consider lines starting with a backslash
-                if let Some('\\') = couple.chars().next() {
-                    let couple: Vec<&str> = couple.splitn(2, ':').collect();
-                    map.insert(String::from(couple[0]), String::from(couple[1]));
-                }
+fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashMap<String, String> {
+    // load macros as a HashMap
+    let mut map = HashMap::new();
+    if let Some(path) = get_macro_path(&ctx.root, macros_path) {
+        let macro_str = load_as_string(&path);
+        for couple in macro_str.split('\n') {
+            // only consider lines starting with a backslash
+            if let Some('\\') = couple.chars().next() {
+                let couple: Vec<&str> = couple.splitn(2, ':').collect();
+                map.insert(String::from(couple[0]), String::from(couple[1]));
             }
         }
-        map
     }
+    map
+}
 
-    /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
-    #[tokio::main]
-    async fn process_chapter(
-        &self,
-        raw_content: &str,
-        inline_opts: &katex::Opts,
-        display_opts: &katex::Opts,
-        stylesheet_header: &str,
-        include_src: bool,
-    ) -> String {
-        let mut outside_code_block = false;
-        let mut tasks = Vec::new();
-        for block in raw_content.split(CODE_BLOCK_DELIMITER) {
-            outside_code_block = !outside_code_block;
-            tasks.push(spawn(process_block(
-                block.to_owned(),
-                outside_code_block,
-                display_opts.clone(),
-                inline_opts.clone(),
-                include_src,
-            )));
-        }
-        let mut rendered_vec = Vec::with_capacity(tasks.len() + 1);
-        rendered_vec.push(stylesheet_header.to_owned());
-        for task in tasks {
-            rendered_vec.push(task.await.expect("A tokio task panicked."));
-        }
-        rendered_vec.join("")
+/// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
+#[tokio::main]
+async fn process_chapter(
+    raw_content: &str,
+    inline_opts: &katex::Opts,
+    display_opts: &katex::Opts,
+    stylesheet_header: &str,
+    include_src: bool,
+) -> String {
+    let mut outside_code_block = false;
+    let mut tasks = Vec::new();
+    for block in raw_content.split(CODE_BLOCK_DELIMITER) {
+        outside_code_block = !outside_code_block;
+        tasks.push(spawn(process_block(
+            block.to_owned(),
+            outside_code_block,
+            display_opts.clone(),
+            inline_opts.clone(),
+            include_src,
+        )));
     }
+    let mut rendered_vec = Vec::with_capacity(tasks.len() + 1);
+    rendered_vec.push(stylesheet_header.to_owned());
+    for task in tasks {
+        rendered_vec.push(task.await.expect("A tokio task panicked."));
+    }
+    rendered_vec.join("")
 }
 
 /// Process a `block` that is either a full code block or not.
