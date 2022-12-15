@@ -51,7 +51,7 @@ jobs:
 
   gnu-linux-binary:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
@@ -134,7 +134,7 @@ jobs:
 
     needs: [windows-binary, gnu-linux-binary, macos-binary]
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
@@ -171,7 +171,7 @@ jobs:
 
   publish:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
         - uses: actions/checkout@v3
