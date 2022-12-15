@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+use katex::Opts;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -14,6 +15,9 @@ use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
 use mdbook::utils::fs::path_to_root;
+
+const CODE_BLOCK_DELIMITER: &str = "```";
+const INLINE_CODE_DELIMITER: char = '`';
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -178,8 +182,9 @@ impl KatexProcessor {
         map
     }
 
-    // render Katex equations in HTML, and add the Katex CSS
-    fn process_chapter(
+    /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
+    #[tokio::main]
+    async fn process_chapter(
         &self,
         raw_content: &str,
         inline_opts: &katex::Opts,
@@ -188,54 +193,76 @@ impl KatexProcessor {
         include_src: bool,
     ) -> String {
         let mut rendered_content = stylesheet_header.to_owned();
-        const CODE_BLOCK_DELIMITER: &str = "```";
-        const INLINE_CODE_DELIMITER: char = '`';
         let mut outside_code_block = false;
         for block in raw_content.split(CODE_BLOCK_DELIMITER) {
             outside_code_block = !outside_code_block;
-            if outside_code_block {
-                // Preserve inline code.
-                let mut outside_inline_code = false;
-                for mut blob in block.split(INLINE_CODE_DELIMITER) {
-                    outside_inline_code = !outside_inline_code;
-                    if outside_inline_code {
-                        let escape_next_backtick = blob.ends_with('\\');
-                        if escape_next_backtick {
-                            outside_inline_code = false;
-                            blob = &blob[..(blob.len() - 1)]
-                        }
-                        // render display equations
-                        let content = Self::render_between_delimiters(
-                            blob,
-                            "$$",
-                            display_opts,
-                            false,
-                            include_src,
-                        );
-                        // render inline equations
-                        let content = Self::render_between_delimiters(
-                            &content,
-                            "$",
-                            inline_opts,
-                            true,
-                            include_src,
-                        );
-                        rendered_content.push_str(&content);
-                        if escape_next_backtick {
-                            rendered_content.push('\\');
-                            rendered_content.push(INLINE_CODE_DELIMITER);
-                        }
-                    } else {
-                        rendered_content.push(INLINE_CODE_DELIMITER);
-                        rendered_content.push_str(blob);
+            rendered_content.push_str(
+                &self
+                    .process_block(
+                        block,
+                        outside_code_block,
+                        display_opts,
+                        inline_opts,
+                        include_src,
+                    )
+                    .await,
+            );
+        }
+        rendered_content
+    }
+
+    /// Process a `block` that is either a full code block or not.
+    async fn process_block(
+        &self,
+        block: &str,
+        outside_code_block: bool,
+        display_opts: &Opts,
+        inline_opts: &Opts,
+        include_src: bool,
+    ) -> String {
+        let mut rendered_content = String::with_capacity(block.len());
+        if outside_code_block {
+            // Preserve inline code.
+            let mut outside_inline_code = false;
+            for mut blob in block.split(INLINE_CODE_DELIMITER) {
+                outside_inline_code = !outside_inline_code;
+                if outside_inline_code {
+                    let escape_next_backtick = blob.ends_with('\\');
+                    if escape_next_backtick {
+                        outside_inline_code = false;
+                        blob = &blob[..(blob.len() - 1)]
+                    }
+                    // render display equations
+                    let content = Self::render_between_delimiters(
+                        blob,
+                        "$$",
+                        display_opts,
+                        false,
+                        include_src,
+                    );
+                    // render inline equations
+                    let content = Self::render_between_delimiters(
+                        &content,
+                        "$",
+                        inline_opts,
+                        true,
+                        include_src,
+                    );
+                    rendered_content.push_str(&content);
+                    if escape_next_backtick {
+                        rendered_content.push('\\');
                         rendered_content.push(INLINE_CODE_DELIMITER);
                     }
+                } else {
+                    rendered_content.push(INLINE_CODE_DELIMITER);
+                    rendered_content.push_str(blob);
+                    rendered_content.push(INLINE_CODE_DELIMITER);
                 }
-            } else {
-                rendered_content.push_str(CODE_BLOCK_DELIMITER);
-                rendered_content.push_str(block);
-                rendered_content.push_str(CODE_BLOCK_DELIMITER);
             }
+        } else {
+            rendered_content.push_str(CODE_BLOCK_DELIMITER);
+            rendered_content.push_str(block);
+            rendered_content.push_str(CODE_BLOCK_DELIMITER);
         }
         rendered_content
     }
