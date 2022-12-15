@@ -235,28 +235,16 @@ pub async fn process_block(
                 let escape_next_backtick = blob.ends_with('\\');
                 let my_blob = if escape_next_backtick {
                     outside_inline_code = false;
-                    blob[..(blob.len() - 1)].to_owned()
+                    &blob[..(blob.len() - 1)]
                 } else {
-                    blob.to_owned()
+                    blob
                 };
                 // render display equations
-                let content = render_between_delimiters(
-                    my_blob,
-                    "$$".to_owned(),
-                    display_opts.clone(),
-                    false,
-                    include_src,
-                )
-                .await;
+                let content =
+                    render_between_delimiters(my_blob, "$$", &display_opts, false, include_src);
                 // render inline equations
-                let content = render_between_delimiters(
-                    content,
-                    "$".to_owned(),
-                    inline_opts.clone(),
-                    true,
-                    include_src,
-                )
-                .await;
+                let content =
+                    render_between_delimiters(&content, "$", &inline_opts, true, include_src);
                 rendered_content.push_str(&content);
                 if escape_next_backtick {
                     rendered_content.push('\\');
@@ -277,41 +265,27 @@ pub async fn process_block(
 }
 
 // render equations between given delimiters, with specified options
-pub async fn render_between_delimiters(
-    raw_content: String,
-    delimiters: String,
-    opts: Opts,
+pub fn render_between_delimiters(
+    raw_content: &str,
+    delimiters: &str,
+    opts: &Opts,
     escape_backslash: bool,
     include_src: bool,
 ) -> String {
     let mut inside_delimiters = false;
-    let mut tasks = Vec::new();
-    for item in split(&raw_content, &delimiters, escape_backslash) {
-        tasks.push(spawn(render(
-            item,
-            inside_delimiters,
-            opts.clone(),
-            include_src,
-        )));
+    let mut rendered_vec = Vec::new();
+    for item in split(raw_content, delimiters, escape_backslash) {
+        rendered_vec.push(render(&item, inside_delimiters, opts, include_src));
         inside_delimiters = !inside_delimiters;
-    }
-    let mut rendered_vec = Vec::with_capacity(tasks.len());
-    for task in tasks {
-        rendered_vec.push(task.await.expect("A tokio task panicked."));
     }
     rendered_vec.join("")
 }
 
-pub async fn render(
-    item: String,
-    inside_delimiters: bool,
-    opts: Opts,
-    include_src: bool,
-) -> String {
+pub fn render(item: &str, inside_delimiters: bool, opts: &Opts, include_src: bool) -> String {
     let mut rendered_content = String::new();
     if inside_delimiters {
         // try to render equation
-        if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+        if let Ok(rendered) = katex::render_with_opts(item, opts) {
             rendered_content.push_str(&rendered.replace('\n', " "));
             if include_src {
                 rendered_content.push_str(r#"<span class="katex-src">"#);
@@ -320,14 +294,15 @@ pub async fn render(
             }
         // if rendering fails, keep the unrendered equation
         } else {
-            rendered_content.push_str(&item)
+            rendered_content.push_str(item)
         }
     // outside delimiters
     } else {
-        rendered_content.push_str(&item)
+        rendered_content.push_str(item)
     }
     rendered_content
 }
+
 fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
     let mut result = Vec::new();
     let mut splits = string.split(separator);
