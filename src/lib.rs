@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+use katex::Opts;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -14,6 +16,10 @@ use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
 use mdbook::utils::fs::path_to_root;
+use tokio::spawn;
+
+const CODE_BLOCK_DELIMITER: &str = "```";
+const INLINE_CODE_DELIMITER: char = '`';
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -91,26 +97,39 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+    #[tokio::main]
+    async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
         // enforce config requirements
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts) = self.build_opts(ctx, &cfg);
+        let (inline_opts, display_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
-        book.for_each_mut(|item| {
+        let mut tasks = Vec::new();
+        for item in book.iter() {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
                     let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
-                    chapter.content = self.process_chapter(
-                        &chapter.content,
-                        &inline_opts,
-                        &display_opts,
-                        &stylesheet_header,
+                    tasks.push(spawn(process_chapter(
+                        chapter.content.clone(),
+                        inline_opts.clone(),
+                        display_opts.clone(),
+                        stylesheet_header.clone(),
                         cfg.include_src,
-                    )
+                    )));
+                }
+            }
+        }
+        let mut contents = VecDeque::with_capacity(tasks.len());
+        for task in tasks {
+            contents.push_back(task.await.expect("A tokio task panicked."));
+        }
+        book.for_each_mut(|item| {
+            if let BookItem::Chapter(chapter) = item {
+                if chapter.path.is_some() {
+                    chapter.content = contents.pop_front().expect("Chapter number mismatch.");
                 }
             }
         });
@@ -122,181 +141,215 @@ impl Preprocessor for KatexProcessor {
     }
 }
 
-impl KatexProcessor {
-    fn build_opts(
-        &self,
-        ctx: &PreprocessorContext,
-        cfg: &KatexConfig,
-    ) -> (katex::Opts, katex::Opts) {
-        let configure_katex_opts = || -> katex::OptsBuilder {
-            katex::Opts::builder()
-                .leqno(cfg.leqno)
-                .fleqn(cfg.fleqn)
-                .throw_on_error(cfg.throw_on_error)
-                .error_color(cfg.error_color.clone())
-                .min_rule_thickness(cfg.min_rule_thickness)
-                .max_size(cfg.max_size)
-                .max_expand(cfg.max_expand)
-                .trust(cfg.trust)
-                .clone()
-        };
-        // load macros as a HashMap
-        let macros = Self::load_macros(ctx, &cfg.macros);
-        // inline rendering options
-        let inline_opts = configure_katex_opts()
-            .display_mode(false)
-            .output_type(katex::OutputType::Html)
-            .macros(macros.clone())
-            .build()
-            .unwrap();
-        // display rendering options
-        let display_opts = configure_katex_opts()
-            .display_mode(true)
-            .output_type(katex::OutputType::Html)
-            .macros(macros)
-            .build()
-            .unwrap();
-        (inline_opts, display_opts)
-    }
+fn build_opts(ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+    let configure_katex_opts = || -> katex::OptsBuilder {
+        katex::Opts::builder()
+            .leqno(cfg.leqno)
+            .fleqn(cfg.fleqn)
+            .throw_on_error(cfg.throw_on_error)
+            .error_color(cfg.error_color.clone())
+            .min_rule_thickness(cfg.min_rule_thickness)
+            .max_size(cfg.max_size)
+            .max_expand(cfg.max_expand)
+            .trust(cfg.trust)
+            .clone()
+    };
+    // load macros as a HashMap
+    let macros = load_macros(ctx, &cfg.macros);
+    // inline rendering options
+    let inline_opts = configure_katex_opts()
+        .display_mode(false)
+        .output_type(katex::OutputType::Html)
+        .macros(macros.clone())
+        .build()
+        .unwrap();
+    // display rendering options
+    let display_opts = configure_katex_opts()
+        .display_mode(true)
+        .output_type(katex::OutputType::Html)
+        .macros(macros)
+        .build()
+        .unwrap();
+    (inline_opts, display_opts)
+}
 
-    fn load_macros(
-        ctx: &PreprocessorContext,
-        macros_path: &Option<String>,
-    ) -> HashMap<String, String> {
-        // load macros as a HashMap
-        let mut map = HashMap::new();
-        if let Some(path) = get_macro_path(&ctx.root, macros_path) {
-            let macro_str = load_as_string(&path);
-            for couple in macro_str.split('\n') {
-                // only consider lines starting with a backslash
-                if let Some('\\') = couple.chars().next() {
-                    let couple: Vec<&str> = couple.splitn(2, ':').collect();
-                    map.insert(String::from(couple[0]), String::from(couple[1]));
-                }
+fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashMap<String, String> {
+    // load macros as a HashMap
+    let mut map = HashMap::new();
+    if let Some(path) = get_macro_path(&ctx.root, macros_path) {
+        let macro_str = load_as_string(&path);
+        for couple in macro_str.split('\n') {
+            // only consider lines starting with a backslash
+            if let Some('\\') = couple.chars().next() {
+                let couple: Vec<&str> = couple.splitn(2, ':').collect();
+                map.insert(String::from(couple[0]), String::from(couple[1]));
             }
         }
-        map
     }
+    map
+}
 
-    // render Katex equations in HTML, and add the Katex CSS
-    fn process_chapter(
-        &self,
-        raw_content: &str,
-        inline_opts: &katex::Opts,
-        display_opts: &katex::Opts,
-        stylesheet_header: &str,
-        include_src: bool,
-    ) -> String {
-        let mut rendered_content = stylesheet_header.to_owned();
-        const CODE_BLOCK_DELIMITER: &str = "```";
-        const INLINE_CODE_DELIMITER: char = '`';
-        let mut outside_code_block = false;
-        for block in raw_content.split(CODE_BLOCK_DELIMITER) {
-            outside_code_block = !outside_code_block;
-            if outside_code_block {
-                // Preserve inline code.
-                let mut outside_inline_code = false;
-                for mut blob in block.split(INLINE_CODE_DELIMITER) {
-                    outside_inline_code = !outside_inline_code;
-                    if outside_inline_code {
-                        let escape_next_backtick = blob.ends_with('\\');
-                        if escape_next_backtick {
-                            outside_inline_code = false;
-                            blob = &blob[..(blob.len() - 1)]
-                        }
-                        // render display equations
-                        let content = Self::render_between_delimiters(
-                            blob,
-                            "$$",
-                            display_opts,
-                            false,
-                            include_src,
-                        );
-                        // render inline equations
-                        let content = Self::render_between_delimiters(
-                            &content,
-                            "$",
-                            inline_opts,
-                            true,
-                            include_src,
-                        );
-                        rendered_content.push_str(&content);
-                        if escape_next_backtick {
-                            rendered_content.push('\\');
-                            rendered_content.push(INLINE_CODE_DELIMITER);
-                        }
-                    } else {
-                        rendered_content.push(INLINE_CODE_DELIMITER);
-                        rendered_content.push_str(blob);
-                        rendered_content.push(INLINE_CODE_DELIMITER);
-                    }
-                }
-            } else {
-                rendered_content.push_str(CODE_BLOCK_DELIMITER);
-                rendered_content.push_str(block);
-                rendered_content.push_str(CODE_BLOCK_DELIMITER);
-            }
-        }
-        rendered_content
+/// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
+async fn process_chapter(
+    raw_content: String,
+    inline_opts: Opts,
+    display_opts: Opts,
+    stylesheet_header: String,
+    include_src: bool,
+) -> String {
+    let mut outside_code_block = false;
+    let mut rendered_vec = Vec::new();
+    rendered_vec.push(stylesheet_header.to_owned());
+    for block in raw_content.split(CODE_BLOCK_DELIMITER) {
+        outside_code_block = !outside_code_block;
+        rendered_vec.push(
+            process_block(
+                block,
+                outside_code_block,
+                &display_opts,
+                &inline_opts,
+                include_src,
+            )
+            .await,
+        );
     }
+    rendered_vec.join("")
+}
 
-    // render equations between given delimiters, with specified options
-    fn render_between_delimiters(
-        raw_content: &str,
-        delimiters: &str,
-        opts: &katex::Opts,
-        escape_backslash: bool,
-        include_src: bool,
-    ) -> String {
-        let mut rendered_content = String::new();
-        let mut inside_delimiters = false;
-        for item in Self::split(raw_content, delimiters, escape_backslash) {
-            if inside_delimiters {
-                // try to render equation
-                if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-                    rendered_content.push_str(&rendered.replace('\n', " "));
-                    if include_src {
-                        rendered_content.push_str(r#"<span class="katex-src">"#);
-                        rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
-                        rendered_content.push_str(r"</span>");
-                    }
-                // if rendering fails, keep the unrendered equation
+/// Process a `block` that is either a full code block or not.
+pub async fn process_block(
+    block: &str,
+    outside_code_block: bool,
+    display_opts: &Opts,
+    inline_opts: &Opts,
+    include_src: bool,
+) -> String {
+    let mut rendered_content = String::with_capacity(block.len());
+    if outside_code_block {
+        // Preserve inline code.
+        let mut outside_inline_code = false;
+        for blob in block.split(INLINE_CODE_DELIMITER) {
+            outside_inline_code = !outside_inline_code;
+            if outside_inline_code {
+                let escape_next_backtick = blob.ends_with('\\');
+                let my_blob = if escape_next_backtick {
+                    outside_inline_code = false;
+                    blob[..(blob.len() - 1)].to_owned()
                 } else {
-                    rendered_content.push_str(&item)
+                    blob.to_owned()
+                };
+                // render display equations
+                let content = render_between_delimiters(
+                    my_blob,
+                    "$$".to_owned(),
+                    display_opts.clone(),
+                    false,
+                    include_src,
+                )
+                .await;
+                // render inline equations
+                let content = render_between_delimiters(
+                    content,
+                    "$".to_owned(),
+                    inline_opts.clone(),
+                    true,
+                    include_src,
+                )
+                .await;
+                rendered_content.push_str(&content);
+                if escape_next_backtick {
+                    rendered_content.push('\\');
+                    rendered_content.push(INLINE_CODE_DELIMITER);
                 }
-            // outside delimiters
             } else {
-                rendered_content.push_str(&item)
+                rendered_content.push(INLINE_CODE_DELIMITER);
+                rendered_content.push_str(blob);
+                rendered_content.push(INLINE_CODE_DELIMITER);
             }
-            inside_delimiters = !inside_delimiters;
         }
-        rendered_content
+    } else {
+        rendered_content.push_str(CODE_BLOCK_DELIMITER);
+        rendered_content.push_str(block);
+        rendered_content.push_str(CODE_BLOCK_DELIMITER);
     }
+    rendered_content
+}
 
-    fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
-        let mut result = Vec::new();
-        let mut splits = string.split(separator);
-        let mut current_split = splits.next();
-        // iterate over splits
-        while let Some(substring) = current_split {
-            let mut result_split = String::from(substring);
-            if escape_backslash {
-                // while the current split ends with a backslash
-                while let Some('\\') = current_split.unwrap().chars().last() {
-                    // removes the backslash, add the separator back, and add the next split
-                    result_split.pop();
-                    result_split.push_str(separator);
-                    current_split = splits.next();
-                    if let Some(split) = current_split {
-                        result_split.push_str(split);
-                    }
+// render equations between given delimiters, with specified options
+pub async fn render_between_delimiters(
+    raw_content: String,
+    delimiters: String,
+    opts: Opts,
+    escape_backslash: bool,
+    include_src: bool,
+) -> String {
+    let mut inside_delimiters = false;
+    let mut tasks = Vec::new();
+    for item in split(&raw_content, &delimiters, escape_backslash) {
+        tasks.push(spawn(render(
+            item,
+            inside_delimiters,
+            opts.clone(),
+            include_src,
+        )));
+        inside_delimiters = !inside_delimiters;
+    }
+    let mut rendered_vec = Vec::with_capacity(tasks.len());
+    for task in tasks {
+        rendered_vec.push(task.await.expect("A tokio task panicked."));
+    }
+    rendered_vec.join("")
+}
+
+pub async fn render(
+    item: String,
+    inside_delimiters: bool,
+    opts: Opts,
+    include_src: bool,
+) -> String {
+    let mut rendered_content = String::new();
+    if inside_delimiters {
+        // try to render equation
+        if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+            rendered_content.push_str(&rendered.replace('\n', " "));
+            if include_src {
+                rendered_content.push_str(r#"<span class="katex-src">"#);
+                rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
+                rendered_content.push_str(r"</span>");
+            }
+        // if rendering fails, keep the unrendered equation
+        } else {
+            rendered_content.push_str(&item)
+        }
+    // outside delimiters
+    } else {
+        rendered_content.push_str(&item)
+    }
+    rendered_content
+}
+fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut splits = string.split(separator);
+    let mut current_split = splits.next();
+    // iterate over splits
+    while let Some(substring) = current_split {
+        let mut result_split = String::from(substring);
+        if escape_backslash {
+            // while the current split ends with a backslash
+            while let Some('\\') = current_split.unwrap().chars().last() {
+                // removes the backslash, add the separator back, and add the next split
+                result_split.pop();
+                result_split.push_str(separator);
+                current_split = splits.next();
+                if let Some(split) = current_split {
+                    result_split.push_str(split);
                 }
             }
-            result.push(result_split);
-            current_split = splits.next()
         }
-        result
+        result.push(result_split);
+        current_split = splits.next()
     }
+    result
 }
 
 pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {

@@ -1,5 +1,6 @@
 use super::*;
 use std::str::FromStr;
+use tokio::runtime::Runtime;
 
 #[test]
 fn test_name() {
@@ -63,22 +64,22 @@ fn test_render_with_cfg(
     macros: HashMap<String, String>,
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
-    let preprocessor = KatexProcessor;
     let (inline_opts, display_opts) = mock_build_opts(macros, &cfg);
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
     let stylesheet_header_generator = katex_header(&build_root, &build_dir, &cfg).unwrap();
     let stylesheet_header = stylesheet_header_generator("".to_string());
+    let rt = Runtime::new().unwrap();
     let rendered = raw_contents
         .iter()
         .map(|raw_content| {
-            preprocessor.process_chapter(
-                raw_content,
-                &inline_opts,
-                &display_opts,
-                &stylesheet_header,
+            rt.block_on(process_chapter(
+                (*raw_content).to_owned(),
+                inline_opts.clone(),
+                display_opts.clone(),
+                stylesheet_header.clone(),
                 cfg.include_src,
-            )
+            ))
         })
         .collect();
     (stylesheet_header, rendered)
