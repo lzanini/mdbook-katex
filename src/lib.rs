@@ -389,7 +389,7 @@ fn katex_header(
                     let mut resource_file = File::create(resource_path)?;
                     // download content
                     let resource_url = format!("{}{}", cdn_root, &resource_name);
-                    let resource_response = reqwest::blocking::get(&resource_url)?;
+                    let resource_response = reqwest::blocking::get(resource_url)?;
                     // populate file with content
                     resource_file.write_all(&resource_response.bytes()?)?;
                 }

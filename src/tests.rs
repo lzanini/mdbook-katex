@@ -201,7 +201,7 @@ fn test_katex_rendering_vmatrix() {
         ..KatexConfig::default()
     };
     let (_, display_opts) = mock_build_opts(HashMap::new(), &cfg);
-    let _ = katex::render_with_opts(math_expr, &display_opts).unwrap();
+    let _ = katex::render_with_opts(math_expr, display_opts).unwrap();
 }
 
 #[cfg(unix)]
