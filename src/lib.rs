@@ -15,7 +15,6 @@ use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
-use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 
 const CODE_BLOCK_DELIMITER: &str = "```";
@@ -105,24 +104,22 @@ impl Preprocessor for KatexProcessor {
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
-        let stylesheet_header_generator =
-            katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
+        let stylesheet_header = katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
         let mut raw_contents = Vec::new();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if let Some(path) = &chapter.path {
-                    raw_contents.push((path.clone(), chapter.content.clone()));
+                if chapter.path.is_some() {
+                    raw_contents.push(chapter.content.clone());
                 }
             }
         });
         let mut tasks = Vec::with_capacity(raw_contents.len());
-        for (path, content) in raw_contents {
-            let stylesheet_header = stylesheet_header_generator(path_to_root(path));
+        for content in raw_contents {
             tasks.push(spawn(process_chapter(
                 content,
                 inline_opts.clone(),
                 display_opts.clone(),
-                stylesheet_header,
+                stylesheet_header.clone(),
                 cfg.include_src,
             )));
         }
@@ -389,7 +386,7 @@ async fn katex_header(
     build_root: &Path,
     build_dir: &Path,
     cfg: &KatexConfig,
-) -> Result<Box<dyn Fn(String) -> String>, Error> {
+) -> Result<String, Error> {
     // constants
     let cdn_root = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/";
     let stylesheet_url = format!("{}katex.min.css", cdn_root);
@@ -452,23 +449,12 @@ async fn katex_header(
                 }
             }
         }
-
-        // return closure capable of generating relative paths to the katex
-        // resources
-        Ok(Box::new(move |path: String| -> String {
-            // generate a style element with a relative local path to
-            // the katex stylesheet
-            format!(
-                "<link rel=\"stylesheet\" href=\"{}katex/katex.min.css\">\n\n",
-                path,
-            )
-        }))
+        Ok("<link rel=\"stylesheet\" href=\"/katex/katex.min.css\">\n\n".to_owned())
     } else {
-        let stylesheet = format!(
+        Ok(format!(
             "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
             stylesheet_url, integrity,
-        );
-        Ok(Box::new(move |_: String| -> String { stylesheet.clone() }))
+        ))
     }
 }
 
