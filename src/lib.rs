@@ -281,11 +281,20 @@ pub async fn render_between_delimiters(
     escape_backslash: bool,
     include_src: bool,
 ) -> String {
-    let mut rendered_vec = Vec::new();
     let mut inside_delimiters = false;
+    let mut tasks = Vec::new();
     for item in split(&raw_content, &delimiters, escape_backslash) {
-        rendered_vec.push(render(item, inside_delimiters, opts.clone(), include_src).await);
+        tasks.push(spawn(render(
+            item,
+            inside_delimiters,
+            opts.clone(),
+            include_src,
+        )));
         inside_delimiters = !inside_delimiters;
+    }
+    let mut rendered_vec = Vec::with_capacity(tasks.len());
+    for task in tasks {
+        rendered_vec.push(task.await.expect("A tokio task panicked."));
     }
     rendered_vec.join("")
 }
