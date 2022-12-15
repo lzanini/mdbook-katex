@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -105,17 +106,25 @@ impl Preprocessor for KatexProcessor {
         // get stylesheet header
         let stylesheet_header_generator =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg)?;
-        book.for_each_mut(|item| {
+        let mut contents = VecDeque::new();
+        book.iter().for_each(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(path) = &chapter.path {
                     let stylesheet_header = stylesheet_header_generator(path_to_root(path.clone()));
-                    chapter.content = process_chapter(
+                    contents.push_back(process_chapter(
                         &chapter.content,
                         &inline_opts,
                         &display_opts,
                         &stylesheet_header,
                         cfg.include_src,
-                    )
+                    ));
+                }
+            }
+        });
+        book.for_each_mut(|item| {
+            if let BookItem::Chapter(chapter) = item {
+                if chapter.path.is_some() {
+                    chapter.content = contents.pop_front().expect("Chapter number mismatch.");
                 }
             }
         });
