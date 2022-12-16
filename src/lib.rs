@@ -68,12 +68,6 @@ fn enforce_config(cfg: &mdbook::Config) {
     if cfg.get("preprocessor.katex").is_none() {
         panic!("Missing `[preprocessor.katex]` directive in `book.toml`!");
     }
-    if cfg.get("output.katex").is_none() {
-        panic!("Missing `[output.katex]` directive in `book.toml`!");
-    }
-    if cfg.get("output.html").is_none() {
-        panic!("The katex preprocessor is only compatible with the html renderer!");
-    }
 }
 
 pub struct KatexProcessor;
