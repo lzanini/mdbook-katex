@@ -439,6 +439,7 @@ async fn download_static_css(
     let url_pattern = Regex::new(r"(url)\s*[(]([^()]*)[)]").unwrap();
     let rel_pattern = Regex::new(r"[.][.][/\\]|[.][/\\]").unwrap();
     let mut resources: HashSet<String> = HashSet::new();
+    let mut tasks = Vec::new();
     for capture in url_pattern.captures_iter(&stylesheet) {
         let resource_name = String::from(&capture[2]);
         // sanitize resource path
@@ -451,9 +452,16 @@ async fn download_static_css(
         if !resource_path.as_path().exists() {
             // don't download resources if they already exist
             if resources.insert(String::from(&capture[2])) {
-                download_static_fonts(resource_path, cdn_root.to_owned(), resource_name).await?;
+                tasks.push(spawn(download_static_fonts(
+                    resource_path,
+                    cdn_root.to_owned(),
+                    resource_name,
+                )));
             }
         }
+    }
+    for task in tasks {
+        task.await??;
     }
     Ok(())
 }
