@@ -15,8 +15,8 @@ use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
-use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
+use tokio::task::JoinHandle;
 
 const CODE_BLOCK_DELIMITER: &str = "```";
 const INLINE_CODE_DELIMITER: char = '`';
@@ -105,24 +105,23 @@ impl Preprocessor for KatexProcessor {
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
-        let stylesheet_header_generator =
+        let (stylesheet_header, maybe_download_task) =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
         let mut raw_contents = Vec::new();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if let Some(path) = &chapter.path {
-                    raw_contents.push((path.clone(), chapter.content.clone()));
+                if chapter.path.is_some() {
+                    raw_contents.push(chapter.content.clone());
                 }
             }
         });
         let mut tasks = Vec::with_capacity(raw_contents.len());
-        for (path, content) in raw_contents {
-            let stylesheet_header = stylesheet_header_generator(path_to_root(path));
+        for content in raw_contents {
             tasks.push(spawn(process_chapter(
                 content,
                 inline_opts.clone(),
                 display_opts.clone(),
-                stylesheet_header,
+                stylesheet_header.clone(),
                 cfg.include_src,
             )));
         }
@@ -137,6 +136,9 @@ impl Preprocessor for KatexProcessor {
                 }
             }
         });
+        if let Some(download_task) = maybe_download_task {
+            download_task.await??;
+        }
         Ok(book)
     }
 
@@ -385,91 +387,112 @@ pub fn load_as_string(path: &Path) -> String {
     string
 }
 
+type SideEffectHandle = JoinHandle<Result<(), Error>>;
 async fn katex_header(
     build_root: &Path,
     build_dir: &Path,
     cfg: &KatexConfig,
-) -> Result<Box<dyn Fn(String) -> String>, Error> {
+) -> Result<(String, Option<SideEffectHandle>), Error> {
     // constants
     let cdn_root = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/";
     let stylesheet_url = format!("{}katex.min.css", cdn_root);
     let integrity = "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X";
 
     if cfg.static_css {
-        // create katex resource directory
-        let mut katex_dir_path = build_root.join(build_dir);
-        katex_dir_path.push("html/katex");
-        if !katex_dir_path.exists() {
-            std::fs::create_dir_all(katex_dir_path.as_path())?;
-        }
+        Ok((
+            "<link rel=\"stylesheet\" href=\"/katex/katex.min.css\">\n\n".to_owned(),
+            Some(spawn(download_static_css(
+                build_root.into(),
+                build_dir.into(),
+                stylesheet_url,
+                cdn_root.into(),
+            ))),
+        ))
+    } else {
+        Ok((format!("<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n", stylesheet_url, integrity),None))
+    }
+}
 
-        // download or fetch stylesheet content
-        let mut stylesheet_path = katex_dir_path.clone();
-        stylesheet_path.push("katex.min.css");
+async fn download_static_css(
+    build_root: PathBuf,
+    build_dir: PathBuf,
+    stylesheet_url: String,
+    cdn_root: String,
+) -> Result<(), Error> {
+    // create katex resource directory
+    let mut katex_dir_path = build_root.join(build_dir);
+    katex_dir_path.push("html/katex");
+    if !katex_dir_path.exists() {
+        std::fs::create_dir_all(katex_dir_path.as_path())?;
+    }
 
-        let mut stylesheet: String;
-        if !stylesheet_path.exists() {
-            // download stylesheet content
-            let stylesheet_response = reqwest::get(stylesheet_url).await?;
-            stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes().await?)?);
-            // create stylesheet file and populate it with the content
-            let mut stylesheet_file = File::create(stylesheet_path.as_path())?;
-            stylesheet_file.write_all(stylesheet.as_str().as_bytes())?;
-        } else {
-            // read stylesheet content from disk
-            stylesheet = String::new();
-            let mut stylesheet_file = File::open(stylesheet_path.as_path())?;
-            stylesheet_file.read_to_string(&mut stylesheet)?;
-        }
+    // download or fetch stylesheet content
+    let mut stylesheet_path = katex_dir_path.clone();
+    stylesheet_path.push("katex.min.css");
 
-        // download all resources from stylesheet
-        let url_pattern = Regex::new(r"(url)\s*[(]([^()]*)[)]").unwrap();
-        let rel_pattern = Regex::new(r"[.][.][/\\]|[.][/\\]").unwrap();
-        let mut resources: HashSet<String> = HashSet::new();
-        for capture in url_pattern.captures_iter(&stylesheet) {
-            let resource_name = String::from(&capture[2]);
-            // sanitize resource path
-            let mut resource_path = katex_dir_path.clone();
-            resource_path.push(&resource_name);
-            resource_path = PathBuf::from(String::from(
-                rel_pattern.replace_all(resource_path.to_str().unwrap(), ""),
-            ));
-            // create resource path and populate content
-            if !resource_path.as_path().exists() {
-                // don't download resources if they already exist
-                if resources.insert(String::from(&capture[2])) {
-                    // create all leading directories
-                    let mut resource_parent_dir = resource_path.clone();
-                    resource_parent_dir.pop();
-                    std::fs::create_dir_all(resource_parent_dir.as_path())?;
-                    // create resource file
-                    let mut resource_file = File::create(resource_path)?;
-                    // download content
-                    let resource_url = format!("{}{}", cdn_root, &resource_name);
-                    let resource_response = reqwest::get(resource_url).await?;
-                    // populate file with content
-                    resource_file.write_all(&resource_response.bytes().await?)?;
-                }
+    let mut stylesheet: String;
+    if !stylesheet_path.exists() {
+        // download stylesheet content
+        let stylesheet_response = reqwest::get(stylesheet_url).await?;
+        stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes().await?)?);
+        // create stylesheet file and populate it with the content
+        let mut stylesheet_file = File::create(stylesheet_path.as_path())?;
+        stylesheet_file.write_all(stylesheet.as_str().as_bytes())?;
+    } else {
+        // read stylesheet content from disk
+        stylesheet = String::new();
+        let mut stylesheet_file = File::open(stylesheet_path.as_path())?;
+        stylesheet_file.read_to_string(&mut stylesheet)?;
+    }
+
+    // download all resources from stylesheet
+    let url_pattern = Regex::new(r"(url)\s*[(]([^()]*)[)]").unwrap();
+    let rel_pattern = Regex::new(r"[.][.][/\\]|[.][/\\]").unwrap();
+    let mut resources: HashSet<String> = HashSet::new();
+    let mut tasks = Vec::new();
+    for capture in url_pattern.captures_iter(&stylesheet) {
+        let resource_name = String::from(&capture[2]);
+        // sanitize resource path
+        let mut resource_path = katex_dir_path.clone();
+        resource_path.push(&resource_name);
+        resource_path = PathBuf::from(String::from(
+            rel_pattern.replace_all(resource_path.to_str().unwrap(), ""),
+        ));
+        // create resource path and populate content
+        if !resource_path.as_path().exists() {
+            // don't download resources if they already exist
+            if resources.insert(String::from(&capture[2])) {
+                tasks.push(spawn(download_static_fonts(
+                    resource_path,
+                    cdn_root.to_owned(),
+                    resource_name,
+                )));
             }
         }
-
-        // return closure capable of generating relative paths to the katex
-        // resources
-        Ok(Box::new(move |path: String| -> String {
-            // generate a style element with a relative local path to
-            // the katex stylesheet
-            format!(
-                "<link rel=\"stylesheet\" href=\"{}katex/katex.min.css\">\n\n",
-                path,
-            )
-        }))
-    } else {
-        let stylesheet = format!(
-            "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
-            stylesheet_url, integrity,
-        );
-        Ok(Box::new(move |_: String| -> String { stylesheet.clone() }))
     }
+    for task in tasks {
+        task.await??;
+    }
+    Ok(())
+}
+
+async fn download_static_fonts(
+    resource_path: PathBuf,
+    cdn_root: String,
+    resource_name: String,
+) -> Result<(), Error> {
+    // create all leading directories
+    let mut resource_parent_dir = resource_path.clone();
+    resource_parent_dir.pop();
+    std::fs::create_dir_all(resource_parent_dir.as_path())?;
+    // create resource file
+    let mut resource_file = File::create(resource_path)?;
+    // download content
+    let resource_url = format!("{}{}", cdn_root, &resource_name);
+    let resource_response = reqwest::get(resource_url).await?;
+    // populate file with content
+    resource_file.write_all(&resource_response.bytes().await?)?;
+    Ok(())
 }
 
 #[cfg(test)]
