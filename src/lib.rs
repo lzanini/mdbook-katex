@@ -15,6 +15,7 @@ use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
+use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
@@ -107,21 +108,33 @@ impl Preprocessor for KatexProcessor {
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
-        let mut raw_contents = Vec::new();
+        let mut paths_w_raw_contents = Vec::new();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if chapter.path.is_some() {
-                    raw_contents.push(chapter.content.clone());
+                if let Some(ref path) = chapter.path {
+                    if cfg.static_css {
+                        paths_w_raw_contents.push((Some(path.clone()), chapter.content.clone()))
+                    } else {
+                        paths_w_raw_contents.push((None, chapter.content.clone()));
+                    }
                 }
             }
         });
-        let mut tasks = Vec::with_capacity(raw_contents.len());
-        for content in raw_contents {
+        let mut tasks = Vec::with_capacity(paths_w_raw_contents.len());
+        for (path, content) in paths_w_raw_contents {
+            let header = if cfg.static_css {
+                format!(
+                    "<link rel=\"stylesheet\" href=\"{}katex/katex.min.css\">\n\n",
+                    path_to_root(path.unwrap()), // must be `Some` since `static_css`
+                )
+            } else {
+                stylesheet_header.clone()
+            };
             tasks.push(spawn(process_chapter(
                 content,
                 inline_opts.clone(),
                 display_opts.clone(),
-                stylesheet_header.clone(),
+                header,
                 cfg.include_src,
             )));
         }
@@ -400,7 +413,7 @@ async fn katex_header(
 
     if cfg.static_css {
         Ok((
-            "<link rel=\"stylesheet\" href=\"/katex/katex.min.css\">\n\n".to_owned(),
+            "".to_owned(), // not used
             Some(spawn(download_static_css(
                 build_root.into(),
                 build_dir.into(),
@@ -409,7 +422,11 @@ async fn katex_header(
             ))),
         ))
     } else {
-        Ok((format!("<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n", stylesheet_url, integrity),None))
+        Ok((format!(
+                "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
+                stylesheet_url,
+                integrity,
+            ), None))
     }
 }
 
