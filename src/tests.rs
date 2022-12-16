@@ -68,7 +68,7 @@ fn test_render_with_cfg(
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
     let rt = Runtime::new().unwrap();
-    let stylesheet_header = rt
+    let (stylesheet_header, _) = rt
         .block_on(katex_header(&build_root, &build_dir, &cfg))
         .unwrap();
     let rt = Runtime::new().unwrap();

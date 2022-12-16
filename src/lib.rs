@@ -16,6 +16,7 @@ use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::renderer::{RenderContext, Renderer};
 use tokio::spawn;
+use tokio::task::JoinHandle;
 
 const CODE_BLOCK_DELIMITER: &str = "```";
 const INLINE_CODE_DELIMITER: char = '`';
@@ -104,7 +105,8 @@ impl Preprocessor for KatexProcessor {
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
-        let stylesheet_header = katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
+        let (stylesheet_header, maybe_download_task) =
+            katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
         let mut raw_contents = Vec::new();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
@@ -134,6 +136,9 @@ impl Preprocessor for KatexProcessor {
                 }
             }
         });
+        if let Some(download_task) = maybe_download_task {
+            download_task.await??;
+        }
         Ok(book)
     }
 
@@ -382,32 +387,37 @@ pub fn load_as_string(path: &Path) -> String {
     string
 }
 
+type SideEffectHandle = JoinHandle<Result<(), Error>>;
 async fn katex_header(
     build_root: &Path,
     build_dir: &Path,
     cfg: &KatexConfig,
-) -> Result<String, Error> {
+) -> Result<(String, Option<SideEffectHandle>), Error> {
     // constants
     let cdn_root = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/";
     let stylesheet_url = format!("{}katex.min.css", cdn_root);
     let integrity = "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X";
 
     if cfg.static_css {
-        download_static_css(build_root, build_dir, stylesheet_url, cdn_root).await?;
-        Ok("<link rel=\"stylesheet\" href=\"/katex/katex.min.css\">\n\n".to_owned())
-    } else {
-        Ok(format!(
-            "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
-            stylesheet_url, integrity,
+        Ok((
+            "<link rel=\"stylesheet\" href=\"/katex/katex.min.css\">\n\n".to_owned(),
+            Some(spawn(download_static_css(
+                build_root.into(),
+                build_dir.into(),
+                stylesheet_url,
+                cdn_root.into(),
+            ))),
         ))
+    } else {
+        Ok((format!("<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n", stylesheet_url, integrity),None))
     }
 }
 
 async fn download_static_css(
-    build_root: &Path,
-    build_dir: &Path,
+    build_root: PathBuf,
+    build_dir: PathBuf,
     stylesheet_url: String,
-    cdn_root: &str,
+    cdn_root: String,
 ) -> Result<(), Error> {
     // create katex resource directory
     let mut katex_dir_path = build_root.join(build_dir);
