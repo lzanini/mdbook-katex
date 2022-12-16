@@ -426,6 +426,16 @@ async fn download_static_css(
         std::fs::create_dir_all(katex_dir_path.as_path())?;
     }
 
+    // Check for previous download.
+    let dot_keep_path = katex_dir_path.join(".keep");
+    match dot_keep_path.try_exists() {
+        Ok(true) => return Ok(()), // Already downloaded.
+        Ok(false) => (),
+        Err(why) => {
+            eprintln!("mdbook_katex: Error checking for previous downloaded static CSS: {why}.")
+        }
+    }
+
     // download or fetch stylesheet content
     let mut stylesheet_path = katex_dir_path.clone();
     stylesheet_path.push("katex.min.css");
@@ -434,7 +444,7 @@ async fn download_static_css(
     if !stylesheet_path.exists() {
         // download stylesheet content
         let stylesheet_response = reqwest::get(stylesheet_url).await?;
-        stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes().await?)?);
+        stylesheet = stylesheet_response.text().await?;
         // create stylesheet file and populate it with the content
         let mut stylesheet_file = File::create(stylesheet_path.as_path())?;
         stylesheet_file.write_all(stylesheet.as_str().as_bytes())?;
@@ -473,6 +483,9 @@ async fn download_static_css(
     for task in tasks {
         task.await??;
     }
+
+    // Write a `.keep` file to signal that the download has been down.
+    File::create(dot_keep_path)?;
     Ok(())
 }
 
