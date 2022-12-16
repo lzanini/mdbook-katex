@@ -2,7 +2,6 @@ use clap::{crate_version, Arg, ArgMatches, Command};
 use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
-use mdbook::renderer::{RenderContext, Renderer};
 use mdbook_katex::KatexProcessor;
 use std::io::{self, Read};
 
@@ -56,11 +55,6 @@ fn handle_preprocessing(
     Ok(())
 }
 
-fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Error> {
-    check_mdbook_version(&ctx.version);
-    rend.render(ctx)
-}
-
 fn main() -> Result<(), Error> {
     // set up app
     let matches = make_app().get_matches();
@@ -77,9 +71,6 @@ fn main() -> Result<(), Error> {
     } else if let Ok((ctx, book)) = CmdPreprocessor::parse_input(book_data.as_bytes()) {
         // handle preprocessing
         return handle_preprocessing(&pre, &ctx, &book);
-    } else if let Ok(ctx) = RenderContext::from_json(book_data.as_bytes()) {
-        // handle rendering
-        return handle_rendering(&ctx, &pre);
     }
 
     Err(Error::msg(

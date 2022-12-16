@@ -14,7 +14,7 @@ use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use mdbook::renderer::{RenderContext, Renderer};
+
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
@@ -60,30 +60,7 @@ impl Default for KatexConfig {
     }
 }
 
-// ensures that both the preprocessor and renderers are enabled
-// in the `book.toml`; the renderer forces mdbook to separate all
-// renderers into their respective directories, ensuring that the
-// html renderer will always be at `{out_dir}/html`
-fn enforce_config(cfg: &mdbook::Config) {
-    if cfg.get("preprocessor.katex").is_none() {
-        panic!("Missing `[preprocessor.katex]` directive in `book.toml`!");
-    }
-}
-
 pub struct KatexProcessor;
-
-// dummy renderer to ensure rendered output is always located
-// in the `book/html/` directory
-impl Renderer for KatexProcessor {
-    fn name(&self) -> &str {
-        "katex"
-    }
-
-    fn render(&self, ctx: &RenderContext) -> Result<()> {
-        enforce_config(&ctx.config);
-        Ok(())
-    }
-}
 
 // preprocessor to inject rendered katex blocks and stylesheet
 impl Preprocessor for KatexProcessor {
@@ -93,8 +70,6 @@ impl Preprocessor for KatexProcessor {
 
     #[tokio::main]
     async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
-        // enforce config requirements
-        enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts) = build_opts(ctx, &cfg);
