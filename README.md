@@ -14,11 +14,9 @@ First, install `mdbook-katex`
 cargo install mdbook-katex
 ```
 
-Then, add the following lines to your `book.toml` file
+Then, add the following line to your `book.toml` file
 
 ```toml
-[output.katex]
-
 [preprocessor.katex]
 ```
 
@@ -128,8 +126,5 @@ For more information about adding custom CSS and JavaScript in `mdbook`, see [ad
 If you need more information about this feature, please check the issues or file a new issue.
 
 ## Caveats
-
-The build artifact of the book will be in a folder named `html` inside the directory you specify instead of being directly there.
-Consider this when you use `mdbook_katex` in your CIs.
 
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
