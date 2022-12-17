@@ -20,7 +20,7 @@ use tokio::spawn;
 use tokio::task::JoinHandle;
 
 const CODE_BLOCK_DELIMITER: &str = "```";
-const INLINE_CODE_DELIMITER: char = '`';
+const INLINE_CODE_DELIMITER: &str = "`";
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -219,11 +219,11 @@ async fn process_chapter(
     let mut outside_code_block = false;
     let mut rendered_vec = Vec::new();
     rendered_vec.push(stylesheet_header.to_owned());
-    for block in raw_content.split(CODE_BLOCK_DELIMITER) {
+    for block in split_ignore_escaped(&raw_content, CODE_BLOCK_DELIMITER) {
         outside_code_block = !outside_code_block;
         rendered_vec.push(
             process_block(
-                block,
+                &block,
                 outside_code_block,
                 &display_opts,
                 &inline_opts,
@@ -247,19 +247,12 @@ pub async fn process_block(
     if outside_code_block {
         // Preserve inline code.
         let mut outside_inline_code = false;
-        for blob in block.split(INLINE_CODE_DELIMITER) {
+        for blob in split_ignore_escaped(block, INLINE_CODE_DELIMITER) {
             outside_inline_code = !outside_inline_code;
             if outside_inline_code {
-                let escape_next_backtick = blob.ends_with('\\');
-                let my_blob = if escape_next_backtick {
-                    outside_inline_code = false;
-                    blob[..(blob.len() - 1)].to_owned()
-                } else {
-                    blob.to_owned()
-                };
                 // render display equations
                 let content = render_between_delimiters(
-                    my_blob,
+                    blob,
                     "$$".to_owned(),
                     display_opts.clone(),
                     include_src,
@@ -274,14 +267,10 @@ pub async fn process_block(
                 )
                 .await;
                 rendered_content.push_str(&content);
-                if escape_next_backtick {
-                    rendered_content.push('\\');
-                    rendered_content.push(INLINE_CODE_DELIMITER);
-                }
             } else {
-                rendered_content.push(INLINE_CODE_DELIMITER);
-                rendered_content.push_str(blob);
-                rendered_content.push(INLINE_CODE_DELIMITER);
+                rendered_content.push_str(INLINE_CODE_DELIMITER);
+                rendered_content.push_str(&blob);
+                rendered_content.push_str(INLINE_CODE_DELIMITER);
             }
         }
     } else {
@@ -348,14 +337,13 @@ fn split_ignore_escaped(string: &str, separator: &str) -> Vec<String> {
     let mut result = Vec::<String>::new();
     let mut escaped = false;
     for split in string.split(separator) {
-        let trimmed = split.trim_end_matches('\\');
         if escaped {
             escaped = false;
             result.last_mut()
                 .expect("Impossible because a previous split must have been processed if `escaped` is true.")
-                .push_str(&(separator.to_owned() + trimmed));
+                .push_str(&(separator.to_owned() + split));
         } else {
-            result.push(trimmed.into());
+            result.push(split.into());
         }
 
         if split.ends_with('\\') {
