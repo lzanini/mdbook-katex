@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
 use katex::Opts;
+use pulldown_cmark::CowStr;
 use pulldown_cmark::Event;
 use pulldown_cmark::Parser;
 use pulldown_cmark_to_cmark::cmark;
@@ -21,6 +22,8 @@ use mdbook::renderer::{RenderContext, Renderer};
 use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
+
+const INLINE_CODE_DELIMITER: char = '`';
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -216,14 +219,14 @@ async fn process_chapter(
     stylesheet_header: String,
     include_src: bool,
 ) -> String {
-    let parser = Parser::new(&raw_content).collect::<Vec<_>>();
-    let mut events = Vec::with_capacity(parser.len());
-    for event in &parser {
-        match event {
-            Event::Text(block) => {
-                events.extend(process_block(block, &display_opts, &inline_opts, include_src).await)
-            }
-            other => events.push(other.clone()),
+    let mut parser = Parser::new(&raw_content).collect::<Vec<_>>();
+    for event in &mut parser {
+        if let Event::Text(block) = event {
+            *event = Event::Text(CowStr::Boxed(
+                process_block(block, &display_opts, &inline_opts, include_src)
+                    .await
+                    .into_boxed_str(),
+            ));
         }
     }
 
@@ -243,47 +246,63 @@ pub async fn process_block(
     display_opts: &Opts,
     inline_opts: &Opts,
     include_src: bool,
-) -> Vec<Event<'static>> {
-    // render display equations
-    let events = render_between_delimiters(
-        block,
-        "$$".to_owned(),
-        display_opts.clone(),
-        false,
-        include_src,
-    )
-    .await;
-    // render inline equations
-    let mut rendered = Vec::with_capacity(events.len());
-    for event in events {
-        match event {
-            Event::Text(blob) => rendered.extend(
-                render_between_delimiters(
-                    &blob,
-                    "$".to_owned(),
-                    inline_opts.clone(),
-                    true,
-                    include_src,
-                )
-                .await,
-            ),
-            other => rendered.push(other),
+) -> String {
+    let mut rendered_content = String::with_capacity(block.len());
+    // Preserve inline code.
+    let mut outside_inline_code = false;
+    for blob in block.split(INLINE_CODE_DELIMITER) {
+        outside_inline_code = !outside_inline_code;
+        if outside_inline_code {
+            let escape_next_backtick = blob.ends_with('\\');
+            let my_blob = if escape_next_backtick {
+                outside_inline_code = false;
+                blob[..(blob.len() - 1)].to_owned()
+            } else {
+                blob.to_owned()
+            };
+            // render display equations
+            let content = render_between_delimiters(
+                my_blob,
+                "$$".to_owned(),
+                display_opts.clone(),
+                false,
+                include_src,
+            )
+            .await;
+            // render inline equations
+            let content = render_between_delimiters(
+                content,
+                "$".to_owned(),
+                inline_opts.clone(),
+                true,
+                include_src,
+            )
+            .await;
+            rendered_content.push_str(&content);
+            if escape_next_backtick {
+                rendered_content.push('\\');
+                rendered_content.push(INLINE_CODE_DELIMITER);
+            }
+        } else {
+            rendered_content.push(INLINE_CODE_DELIMITER);
+            rendered_content.push_str(blob);
+            rendered_content.push(INLINE_CODE_DELIMITER);
         }
     }
-    rendered
+    rendered_content
 }
 
 // render equations between given delimiters, with specified options
 pub async fn render_between_delimiters(
-    raw_content: &str,
+    raw_content: String,
     delimiters: String,
     opts: Opts,
     escape_backslash: bool,
     include_src: bool,
-) -> Vec<Event<'static>> {
+) -> String {
     let mut inside_delimiters = false;
     let mut tasks = Vec::new();
-    for item in split(raw_content, &delimiters, escape_backslash) {
+    for item in split(&raw_content, &delimiters, escape_backslash) {
         tasks.push(spawn(render(
             item,
             inside_delimiters,
@@ -296,8 +315,7 @@ pub async fn render_between_delimiters(
     for task in tasks {
         rendered_vec.push(task.await.expect("A tokio task panicked."));
     }
-    rendered_vec.join("");
-    todo!()
+    rendered_vec.join("")
 }
 
 pub async fn render(
