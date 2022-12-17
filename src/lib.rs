@@ -346,28 +346,30 @@ pub async fn render(
     }
     rendered_content
 }
+
 fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut splits = string.split(separator);
-    let mut current_split = splits.next();
-    // iterate over splits
-    while let Some(substring) = current_split {
-        let mut result_split = String::from(substring);
-        if escape_backslash {
-            // while the current split ends with a backslash
-            while let Some('\\') = current_split.unwrap().chars().last() {
-                // removes the backslash, add the separator back, and add the next split
-                result_split.pop();
-                result_split.push_str(separator);
-                current_split = splits.next();
-                if let Some(split) = current_split {
-                    result_split.push_str(split);
-                }
-            }
-        }
-        result.push(result_split);
-        current_split = splits.next()
+    if !escape_backslash {
+        return string.split(separator).map(|s| s.into()).collect();
     }
+
+    let mut result = Vec::<String>::new();
+    let mut escaped = false;
+    for split in string.split(separator) {
+        let trimmed = split.trim_end_matches('\\');
+        if escaped {
+            escaped = false;
+            result.last_mut()
+                .expect("Impossible because a previous split must have been processed if `escaped` is true.")
+                .push_str(&(separator.to_owned() + trimmed));
+        } else {
+            result.push(trimmed.into());
+        }
+
+        if split.ends_with('\\') {
+            escaped = true;
+        }
+    }
+
     result
 }
 
