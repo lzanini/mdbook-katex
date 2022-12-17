@@ -262,7 +262,6 @@ pub async fn process_block(
                     my_blob,
                     "$$".to_owned(),
                     display_opts.clone(),
-                    false,
                     include_src,
                 )
                 .await;
@@ -271,7 +270,6 @@ pub async fn process_block(
                     content,
                     "$".to_owned(),
                     inline_opts.clone(),
-                    true,
                     include_src,
                 )
                 .await;
@@ -299,12 +297,11 @@ pub async fn render_between_delimiters(
     raw_content: String,
     delimiters: String,
     opts: Opts,
-    escape_backslash: bool,
     include_src: bool,
 ) -> String {
     let mut inside_delimiters = false;
     let mut tasks = Vec::new();
-    for item in split(&raw_content, &delimiters, escape_backslash) {
+    for item in split_ignore_escaped(&raw_content, &delimiters) {
         tasks.push(spawn(render(
             item,
             inside_delimiters,
@@ -347,11 +344,7 @@ pub async fn render(
     rendered_content
 }
 
-fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
-    if !escape_backslash {
-        return string.split(separator).map(|s| s.into()).collect();
-    }
-
+fn split_ignore_escaped(string: &str, separator: &str) -> Vec<String> {
     let mut result = Vec::<String>::new();
     let mut escaped = false;
     for split in string.split(separator) {
