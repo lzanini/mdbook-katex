@@ -333,25 +333,34 @@ pub async fn render(
     rendered_content
 }
 
-fn split_ignore_escaped(string: &str, separator: &str) -> Vec<String> {
-    let mut result = Vec::<String>::new();
-    let mut escaped = false;
-    for split in string.split(separator) {
-        if escaped {
-            escaped = false;
-            result.last_mut()
-                .expect("Impossible because a previous split must have been processed if `escaped` is true.")
-                .push_str(&(separator.to_owned() + split));
-        } else {
-            result.push(split.into());
-        }
+#[derive(Debug)]
+struct SplitIgnoreEscaped<'a> {
+    naive_split: std::str::Split<'a, &'a str>,
+    separator: &'a str,
+}
 
-        if split.ends_with('\\') {
-            escaped = true;
+impl<'a> Iterator for SplitIgnoreEscaped<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut result = String::new();
+        for split in self.naive_split.by_ref() {
+            result.push_str(split);
+            if split.ends_with('\\') {
+                result.push_str(self.separator)
+            } else {
+                return Some(result);
+            }
         }
+        None
     }
+}
 
-    result
+fn split_ignore_escaped<'a>(string: &'a str, separator: &'a str) -> SplitIgnoreEscaped<'a> {
+    SplitIgnoreEscaped {
+        naive_split: string.split(separator),
+        separator,
+    }
 }
 
 pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
