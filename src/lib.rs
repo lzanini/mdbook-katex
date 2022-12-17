@@ -23,8 +23,6 @@ use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
-const INLINE_CODE_DELIMITER: char = '`';
-
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
@@ -237,7 +235,7 @@ async fn process_chapter(
         return raw_content;
     }
 
-    rendered
+    rendered.replace(r#"\<span class="katex"#, r#"<span class="katex"#)
 }
 
 /// Process a `block` of text.
@@ -247,48 +245,29 @@ pub async fn process_block(
     inline_opts: &Opts,
     include_src: bool,
 ) -> String {
-    let mut rendered_content = String::with_capacity(block.len());
-    // Preserve inline code.
-    let mut outside_inline_code = false;
-    for blob in block.split(INLINE_CODE_DELIMITER) {
-        outside_inline_code = !outside_inline_code;
-        if outside_inline_code {
-            let escape_next_backtick = blob.ends_with('\\');
-            let my_blob = if escape_next_backtick {
-                outside_inline_code = false;
-                blob[..(blob.len() - 1)].to_owned()
-            } else {
-                blob.to_owned()
-            };
-            // render display equations
-            let content = render_between_delimiters(
-                my_blob,
-                "$$".to_owned(),
-                display_opts.clone(),
-                false,
-                include_src,
-            )
-            .await;
-            // render inline equations
-            let content = render_between_delimiters(
-                content,
-                "$".to_owned(),
-                inline_opts.clone(),
-                true,
-                include_src,
-            )
-            .await;
-            rendered_content.push_str(&content);
-            if escape_next_backtick {
-                rendered_content.push('\\');
-                rendered_content.push(INLINE_CODE_DELIMITER);
-            }
-        } else {
-            rendered_content.push(INLINE_CODE_DELIMITER);
-            rendered_content.push_str(blob);
-            rendered_content.push(INLINE_CODE_DELIMITER);
-        }
+    if block.len() <= 1 {
+        return block.into();
     }
+    let mut rendered_content = String::with_capacity(block.len());
+    // render display equations
+    let content = render_between_delimiters(
+        block.into(),
+        "$$".to_owned(),
+        display_opts.clone(),
+        false,
+        include_src,
+    )
+    .await;
+    // render inline equations
+    let content = render_between_delimiters(
+        content,
+        "$".to_owned(),
+        inline_opts.clone(),
+        true,
+        include_src,
+    )
+    .await;
+    rendered_content.push_str(&content);
     rendered_content
 }
 
@@ -302,9 +281,13 @@ pub async fn render_between_delimiters(
 ) -> String {
     let mut inside_delimiters = false;
     let mut tasks = Vec::new();
-    for item in split(&raw_content, &delimiters, escape_backslash) {
+    let splits = raw_content.split(&delimiters).collect::<Vec<_>>();
+    if splits.len() <= 2 {
+        return raw_content;
+    }
+    for item in splits {
         tasks.push(spawn(render(
-            item,
+            item.into(),
             inside_delimiters,
             opts.clone(),
             include_src,
@@ -344,28 +327,27 @@ pub async fn render(
     }
     rendered_content
 }
+
 fn split(string: &str, separator: &str, escape_backslash: bool) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut splits = string.split(separator);
-    let mut current_split = splits.next();
-    // iterate over splits
-    while let Some(substring) = current_split {
-        let mut result_split = String::from(substring);
-        if escape_backslash {
-            // while the current split ends with a backslash
-            while let Some('\\') = current_split.unwrap().chars().last() {
-                // removes the backslash, add the separator back, and add the next split
-                result_split.pop();
-                result_split.push_str(separator);
-                current_split = splits.next();
-                if let Some(split) = current_split {
-                    result_split.push_str(split);
-                }
-            }
-        }
-        result.push(result_split);
-        current_split = splits.next()
+    if !escape_backslash {
+        return string.split(separator).map(|s| s.into()).collect();
     }
+    let mut result = Vec::<String>::new();
+    let mut escaped = false;
+    for split in string.split(separator) {
+        if escaped {
+            escaped = false;
+            result.last_mut()
+                .expect("Impossible because a previous split must have been processed if `escaped` is true.")
+                .push_str(&(r"\".to_owned() + separator + split));
+        } else {
+            result.push(split.into());
+        }
+        if split.ends_with('\\') {
+            escaped = true;
+        }
+    }
+
     result
 }
 
