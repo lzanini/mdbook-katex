@@ -97,8 +97,9 @@ fn test_rendering_without_math() {
 
 #[test]
 fn test_dollar_escaping() {
-    let (stylesheet_header, rendered_content) = test_render(r"Some text, \$\$ and more text.");
-    let expected_output = stylesheet_header + r"Some text, $$ and more text.";
+    let raw_content = r"Some text, \$\$ and more text.";
+    let (stylesheet_header, rendered_content) = test_render(raw_content);
+    let expected_output = stylesheet_header + raw_content;
     debug_assert_eq!(expected_output, rendered_content);
 }
 
