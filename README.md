@@ -101,11 +101,9 @@ $$ \grad f(x) \in \R{n}{p} $$
 
 This option is added so users can have a convenient way to copy the source code of math expressions when they view the book.
 
-When `include-src` is set to `true`, the included math source code is appended to each rendered math expression.
-Math expressions are `span` elements with `class="katex`.
-Appended math source code is wrapped in `span` elements with `class="katex-src"`.
+When `include-src` is set to `true`, each math block is wrapped within a `<data>` tag with `class="katex-src"` with the included math source code being its `value` attribute.
 
-For example,
+For example, before being fed into `mdbook`,
 
 ```markdown
 Define $f(x)$:
@@ -116,12 +114,15 @@ x\in\R
 $$
 ```
 
-is rendered as (the content of the `katex` `span`s are omitted and represented as `…`)
+is preprocessed into (the content of the `katex` `span`s are omitted and represented as `…`)
 
-```html
-Define <span class="katex">…</span><span class="katex-src">f(x)</span>:
+```markdown
+Define <data class="katex-src" value="f(x)"><span class="katex">…</span></data>:
 
-<span class="katex-display"><span class="katex">…</span></span><span class="katex-src"><br>f(x)=x^2\\\\<br>x\\in\\R<br></span>
+<data class="katex-src" value="
+f(x)=x^2\\
+x\in\R
+"><span class="katex-display"><span class="katex">…</span></span></data>
 ```
 
 The math source code is included in a minimal fashion, and it is up to the users to write custom CSS and JavaScript to make use of it.
