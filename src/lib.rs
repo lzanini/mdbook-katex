@@ -316,11 +316,16 @@ pub async fn render(
     if inside_delimiters {
         // try to render equation
         if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-            rendered_content.push_str(&rendered.replace('\n', " "));
+            let rendered = rendered.replace('\n', " ");
             if include_src {
-                rendered_content.push_str(r#"<span class="katex-src">"#);
-                rendered_content.push_str(&item.replace('\\', r"\\").replace('\n', "<br>"));
-                rendered_content.push_str(r"</span>");
+                // Wrap around with `data.katex-src` tag.
+                rendered_content.push_str(r#"<data class="katex-src" value=""#);
+                rendered_content.push_str(&item.replace('"', r#"\""#));
+                rendered_content.push_str(r#"">"#);
+                rendered_content.push_str(&rendered);
+                rendered_content.push_str(r"</data>");
+            } else {
+                rendered_content.push_str(&rendered);
             }
         // if rendering fails, keep the unrendered equation
         } else {
