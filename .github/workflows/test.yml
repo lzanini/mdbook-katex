@@ -73,17 +73,8 @@ jobs:
       - name: check formatting
         run: cargo fmt -- --check
 
-      - uses: tj-actions/changed-files@v34
-        with:
-          files: Cargo.lock
-
       - name: clippy
         run: RUSTFLAGS="-Dwarnings" cargo clippy
 
-      - run: cargo update
-
       - name: check Cargo.lock
-        if: steps.changed-files-specific.outputs.any_changed == 'true'
-        run: |
-          echo "These files changed: ${{ steps.changed-files-specific.outputs.all_changed_files }}"
-          This test failed
+        run: cargo update --locked
