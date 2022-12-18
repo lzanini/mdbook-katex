@@ -68,6 +68,7 @@ For example:
 
 ```toml
 [preprocessor.katex]
+renderers = ["html"]
 static-css = false
 include-src = false
 ```
