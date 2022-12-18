@@ -156,7 +156,7 @@ impl Preprocessor for KatexProcessor {
     }
 
     fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer == "html" || renderer == "katex"
+        renderer == "html" || renderer == "markdown"
     }
 }
 
