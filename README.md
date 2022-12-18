@@ -20,6 +20,7 @@ Then, add the following lines to your `book.toml` file
 [output.katex]
 
 [preprocessor.katex]
+renderers = ["html"]
 ```
 
 You can now use `$` and `$$` delimiters for inline and display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backslash `\$`.
