@@ -216,8 +216,8 @@ async fn process_chapter(
     stylesheet_header: String,
     include_src: bool,
 ) -> String {
-    let mut rendered_vec = Vec::new();
-    rendered_vec.push(stylesheet_header.to_owned());
+    let mut rendered = String::with_capacity(raw_content.len());
+    rendered.push_str(&stylesheet_header);
 
     let mut scan = Scan::new(&raw_content);
     scan.run();
@@ -227,26 +227,24 @@ async fn process_chapter(
     for event in events {
         match *event {
             Event::Begin(begin) => checkpoint = begin,
-            Event::TextEnd(end) => rendered_vec.push((&raw_content[checkpoint..end]).into()),
+            Event::TextEnd(end) => rendered.push_str(&raw_content[checkpoint..end]),
             Event::InlineEnd(end) => {
-                let inline_feed = (&raw_content[checkpoint..end]).into();
-                let inline_block = render(inline_feed, inline_opts.clone(), include_src).await;
-                rendered_vec.push(inline_block);
+                let inline_feed = &raw_content[checkpoint..end];
+                render(inline_feed, &mut rendered, inline_opts.clone(), include_src);
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
-                let block_feed = (&raw_content[checkpoint..end]).into();
-                let block = render(block_feed, display_opts.clone(), include_src).await;
-                rendered_vec.push(block);
+                let block_feed = &raw_content[checkpoint..end];
+                render(block_feed, &mut rendered, display_opts.clone(), include_src);
                 checkpoint = end;
             }
         }
     }
 
     if raw_content.len() - 1 > checkpoint {
-        rendered_vec.push((&raw_content[checkpoint..raw_content.len()]).into());
+        rendered.push_str(&raw_content[checkpoint..raw_content.len()]);
     }
-    rendered_vec.join("")
+    rendered
 }
 
 #[derive(Debug)]
@@ -395,28 +393,24 @@ impl<'a> Scan<'a> {
     }
 }
 
-pub async fn render(item: String, opts: Opts, include_src: bool) -> String {
-    let mut rendered_content = String::new();
-
+pub fn render(item: &str, output: &mut String, opts: Opts, include_src: bool) {
     // try to render equation
-    if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+    if let Ok(rendered) = katex::render_with_opts(item, opts) {
         let rendered = rendered.replace('\n', " ");
         if include_src {
             // Wrap around with `data.katex-src` tag.
-            rendered_content.push_str(r#"<data class="katex-src" value=""#);
-            rendered_content.push_str(&item.replace('"', r#"\""#));
-            rendered_content.push_str(r#"">"#);
-            rendered_content.push_str(&rendered);
-            rendered_content.push_str(r"</data>");
+            output.push_str(r#"<data class="katex-src" value=""#);
+            output.push_str(&item.replace('"', r#"\""#));
+            output.push_str(r#"">"#);
+            output.push_str(&rendered);
+            output.push_str(r"</data>");
         } else {
-            rendered_content.push_str(&rendered);
+            output.push_str(&rendered);
         }
     // if rendering fails, keep the unrendered equation
     } else {
-        rendered_content.push_str(&item)
+        output.push_str(item);
     }
-
-    rendered_content
 }
 
 pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
