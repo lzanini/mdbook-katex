@@ -19,8 +19,8 @@ use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
-const CODE_BLOCK_DELIMITER: &str = "```";
-const INLINE_CODE_DELIMITER: &str = "`";
+const BLOCK_DELIM: &str = "$$";
+const INLINE_DELIM: &str = "$";
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -208,6 +208,11 @@ fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashM
     map
 }
 
+pub enum Render {
+    Text(String),
+    Task(JoinHandle<String>),
+}
+
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
 async fn process_chapter(
     raw_content: String,
@@ -216,156 +221,218 @@ async fn process_chapter(
     stylesheet_header: String,
     include_src: bool,
 ) -> String {
-    let mut outside_code_block = false;
-    let mut rendered_vec = Vec::new();
-    rendered_vec.push(stylesheet_header.to_owned());
-    for block in split_ignore_escaped(&raw_content, CODE_BLOCK_DELIMITER) {
-        outside_code_block = !outside_code_block;
-        rendered_vec.push(
-            process_block(
-                &block,
-                outside_code_block,
-                &display_opts,
-                &inline_opts,
-                include_src,
-            )
-            .await,
-        );
-    }
-    rendered_vec.join("")
-}
+    let mut rendering = Vec::new();
+    rendering.push(Render::Text(stylesheet_header.to_owned()));
 
-/// Process a `block` that is either a full code block or not.
-pub async fn process_block(
-    block: &str,
-    outside_code_block: bool,
-    display_opts: &Opts,
-    inline_opts: &Opts,
-    include_src: bool,
-) -> String {
-    let mut rendered_content = String::with_capacity(block.len());
-    if outside_code_block {
-        // Preserve inline code.
-        let mut outside_inline_code = false;
-        for blob in split_ignore_escaped(block, INLINE_CODE_DELIMITER) {
-            outside_inline_code = !outside_inline_code;
-            if outside_inline_code {
-                // render display equations
-                let content = render_between_delimiters(
-                    blob,
-                    "$$".to_owned(),
-                    display_opts.clone(),
-                    include_src,
-                )
-                .await;
-                // render inline equations
-                let content = render_between_delimiters(
-                    content,
-                    "$".to_owned(),
-                    inline_opts.clone(),
-                    include_src,
-                )
-                .await;
-                rendered_content.push_str(&content);
-            } else {
-                rendered_content.push_str(INLINE_CODE_DELIMITER);
-                rendered_content.push_str(&blob);
-                rendered_content.push_str(INLINE_CODE_DELIMITER);
+    let mut scan = Scan::new(&raw_content);
+    scan.run();
+
+    let mut checkpoint = 0;
+    let events = scan.events.iter();
+    for event in events {
+        match *event {
+            Event::Begin(begin) => checkpoint = begin,
+            Event::TextEnd(end) => {
+                rendering.push(Render::Text((&raw_content[checkpoint..end]).into()))
+            }
+            Event::InlineEnd(end) => {
+                let inline_feed = (&raw_content[checkpoint..end]).into();
+                let inline_block = spawn(render(inline_feed, inline_opts.clone(), include_src));
+                rendering.push(Render::Task(inline_block));
+                checkpoint = end;
+            }
+            Event::BlockEnd(end) => {
+                let block_feed = (&raw_content[checkpoint..end]).into();
+                let block = spawn(render(block_feed, display_opts.clone(), include_src));
+                rendering.push(Render::Task(block));
+                checkpoint = end;
             }
         }
-    } else {
-        rendered_content.push_str(CODE_BLOCK_DELIMITER);
-        rendered_content.push_str(block);
-        rendered_content.push_str(CODE_BLOCK_DELIMITER);
     }
-    rendered_content
-}
 
-// render equations between given delimiters, with specified options
-pub async fn render_between_delimiters(
-    raw_content: String,
-    delimiters: String,
-    opts: Opts,
-    include_src: bool,
-) -> String {
-    let mut inside_delimiters = false;
-    let mut tasks = Vec::new();
-    for item in split_ignore_escaped(&raw_content, &delimiters) {
-        tasks.push(spawn(render(
-            item,
-            inside_delimiters,
-            opts.clone(),
-            include_src,
-        )));
-        inside_delimiters = !inside_delimiters;
+    if raw_content.len() - 1 > checkpoint {
+        rendering.push(Render::Text(
+            (&raw_content[checkpoint..raw_content.len()]).into(),
+        ));
     }
-    let mut rendered_vec = Vec::with_capacity(tasks.len());
-    for task in tasks {
-        rendered_vec.push(task.await.expect("A tokio task panicked."));
+    let mut rendered = Vec::with_capacity(rendering.len());
+    for r in rendering {
+        rendered.push(match r {
+            Render::Text(t) => t,
+            Render::Task(t) => t.await.expect("A tokio task panicked."),
+        });
     }
-    rendered_vec.join("")
-}
-
-pub async fn render(
-    item: String,
-    inside_delimiters: bool,
-    opts: Opts,
-    include_src: bool,
-) -> String {
-    let mut rendered_content = String::new();
-    if inside_delimiters {
-        // try to render equation
-        if let Ok(rendered) = katex::render_with_opts(&item, opts) {
-            let rendered = rendered.replace('\n', " ");
-            if include_src {
-                // Wrap around with `data.katex-src` tag.
-                rendered_content.push_str(r#"<data class="katex-src" value=""#);
-                rendered_content.push_str(&item.replace('"', r#"\""#));
-                rendered_content.push_str(r#"">"#);
-                rendered_content.push_str(&rendered);
-                rendered_content.push_str(r"</data>");
-            } else {
-                rendered_content.push_str(&rendered);
-            }
-        // if rendering fails, keep the unrendered equation
-        } else {
-            rendered_content.push_str(&item)
-        }
-    // outside delimiters
-    } else {
-        rendered_content.push_str(&item)
-    }
-    rendered_content
+    rendered.join("")
 }
 
 #[derive(Debug)]
-struct SplitIgnoreEscaped<'a> {
-    naive_split: std::str::Split<'a, &'a str>,
-    separator: &'a str,
+pub enum Event {
+    Begin(usize),
+    TextEnd(usize),
+    InlineEnd(usize),
+    BlockEnd(usize),
 }
 
-impl<'a> Iterator for SplitIgnoreEscaped<'a> {
-    type Item = String;
+#[derive(Debug)]
+pub struct Scan<'a> {
+    string: &'a str,
+    bytes: &'a [u8],
+    index: usize,
+    pub events: Vec<Event>,
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut result = String::new();
-        for split in self.naive_split.by_ref() {
-            result.push_str(split);
-            if split.ends_with('\\') {
-                result.push_str(self.separator)
+impl<'a> Scan<'a> {
+    pub fn new(string: &'a str) -> Self {
+        Self {
+            string,
+            bytes: string.as_bytes(),
+            index: 0,
+            events: Vec::new(),
+        }
+    }
+
+    pub fn run(&mut self) {
+        _ = self.process_byte();
+    }
+
+    fn get_byte(&self) -> Result<u8, ()> {
+        self.bytes.get(self.index).map(|b| b.to_owned()).ok_or(())
+    }
+
+    fn inc(&mut self) {
+        self.index += 1;
+    }
+
+    fn process_byte(&mut self) -> Result<(), ()> {
+        let byte = self.get_byte()?;
+        self.inc();
+        match byte {
+            b'$' => {
+                if self.index > 0 {
+                    self.events.push(Event::TextEnd(self.index - 1));
+                }
+                if self.get_byte()? == b'$' {
+                    self.inc();
+                    self.process_block()
+                } else {
+                    self.process_inline()
+                }
+            }
+            b'\\' => {
+                self.inc();
+                self.process_byte()
+            }
+            b'`' => self.process_backtick(),
+            _ => self.process_byte(),
+        }
+    }
+
+    fn process_backtick(&mut self) -> Result<(), ()> {
+        let mut n_back_ticks = 1;
+        loop {
+            let byte = self.get_byte()?;
+            if byte == b'`' {
+                self.inc();
+                n_back_ticks += 1;
             } else {
-                return Some(result);
+                break;
             }
         }
-        None
+        loop {
+            self.index += self.string[self.index..]
+                .find(&"`".repeat(n_back_ticks))
+                .ok_or(())?
+                + n_back_ticks;
+            if self.get_byte()? == b'`' {
+                // Skip excessive backticks.
+                self.inc();
+                while let b'`' = self.get_byte()? {
+                    self.inc();
+                }
+            } else {
+                break;
+            }
+        }
+        self.process_byte()
+    }
+
+    fn process_block(&mut self) -> Result<(), ()> {
+        self.events.push(Event::Begin(self.index));
+        loop {
+            let index = self.index + self.string[self.index..].find(BLOCK_DELIM).ok_or(())?;
+
+            // Check `\`.
+            let mut escaped = false;
+            let mut checking = index;
+            loop {
+                checking -= 1;
+                if self.bytes.get(checking) == Some(&b'\\') {
+                    escaped = !escaped;
+                } else {
+                    break;
+                }
+            }
+            if !escaped {
+                self.events.push(Event::BlockEnd(index));
+                self.index = index + BLOCK_DELIM.len();
+                self.events.push(Event::Begin(self.index));
+                break;
+            }
+        }
+
+        self.process_byte()
+    }
+
+    fn process_inline(&mut self) -> Result<(), ()> {
+        self.events.push(Event::Begin(self.index));
+        loop {
+            let index = self.index + self.string[self.index..].find(INLINE_DELIM).ok_or(())?;
+
+            // Check `\`.
+            let mut escaped = false;
+            let mut checking = index;
+            loop {
+                checking -= 1;
+                if self.bytes.get(checking) == Some(&b'\\') {
+                    escaped = !escaped;
+                } else {
+                    break;
+                }
+            }
+            if !escaped {
+                self.events.push(Event::InlineEnd(index));
+                self.index = index + INLINE_DELIM.len();
+                self.events.push(Event::Begin(self.index));
+                break;
+            }
+        }
+
+        self.process_byte()
     }
 }
 
-fn split_ignore_escaped<'a>(string: &'a str, separator: &'a str) -> SplitIgnoreEscaped<'a> {
-    SplitIgnoreEscaped {
-        naive_split: string.split(separator),
-        separator,
+pub async fn render(item: String, opts: Opts, include_src: bool) -> String {
+    let mut rendered_content = String::new();
+
+    // try to render equation
+    if let Ok(rendered) = katex::render_with_opts(&item, opts) {
+        let rendered = rendered.replace('\n', " ");
+        if include_src {
+            // Wrap around with `data.katex-src` tag.
+            rendered_content.push_str(r#"<data class="katex-src" value=""#);
+            rendered_content.push_str(&item.replace('"', r#"\""#));
+            rendered_content.push_str(r#"">"#);
+            rendered_content.push_str(&rendered);
+            rendered_content.push_str(r"</data>");
+        } else {
+            rendered_content.push_str(&rendered);
+        }
+    // if rendering fails, keep the unrendered equation
+    } else {
+        rendered_content.push_str(&item)
     }
+
+    rendered_content
 }
 
 pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
