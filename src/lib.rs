@@ -21,6 +21,8 @@ use tokio::task::JoinHandle;
 
 const CODE_BLOCK_DELIMITER: &str = "```";
 const INLINE_CODE_DELIMITER: &str = "`";
+const BLOCK_DELIM: &str = "$$";
+const INLINE_DELIM: &str = "$";
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -216,23 +218,191 @@ async fn process_chapter(
     stylesheet_header: String,
     include_src: bool,
 ) -> String {
-    let mut outside_code_block = false;
     let mut rendered_vec = Vec::new();
     rendered_vec.push(stylesheet_header.to_owned());
-    for block in split_ignore_escaped(&raw_content, CODE_BLOCK_DELIMITER) {
-        outside_code_block = !outside_code_block;
-        rendered_vec.push(
-            process_block(
-                &block,
-                outside_code_block,
-                &display_opts,
-                &inline_opts,
-                include_src,
-            )
-            .await,
-        );
+
+    let mut scan = Scan::new(&raw_content);
+    scan.run();
+
+    let mut checkpoint = 0;
+    let events = scan.events.iter();
+    for event in events {
+        match *event {
+            Event::Begin(begin) => checkpoint = begin,
+            Event::TextEnd(end) => {
+                let text_block = (&raw_content[checkpoint..end]).into();
+                dbg!(&text_block);
+                rendered_vec.push(text_block);
+            }
+            Event::InlineEnd(end) => {
+                let inline_feed = (&raw_content[checkpoint..end]).into();
+                dbg!(&inline_feed);
+                let inline_block =
+                    render(inline_feed, true, inline_opts.clone(), include_src).await;
+                dbg!(&inline_block);
+                rendered_vec.push(inline_block);
+                checkpoint = end;
+            }
+            Event::BlockEnd(end) => {
+                let block_feed = (&raw_content[checkpoint..end]).into();
+                dbg!(&block_feed);
+                let block = render(block_feed, true, display_opts.clone(), include_src).await;
+                dbg!(&block);
+                rendered_vec.push(block);
+                checkpoint = end;
+            }
+        }
+    }
+
+    if raw_content.len() - 1 > checkpoint {
+        let block = (&raw_content[checkpoint..raw_content.len()]).into();
+        eprintln!("Pushing text: {block}.");
+        rendered_vec.push(block);
     }
     rendered_vec.join("")
+}
+
+#[derive(Debug)]
+pub enum Event {
+    Begin(usize),
+    TextEnd(usize),
+    InlineEnd(usize),
+    BlockEnd(usize),
+}
+
+#[derive(Debug)]
+pub struct Scan<'a> {
+    string: &'a str,
+    bytes: &'a [u8],
+    index: usize,
+    pub events: Vec<Event>,
+}
+
+impl<'a> Scan<'a> {
+    pub fn new(string: &'a str) -> Self {
+        Self {
+            string,
+            bytes: string.as_bytes(),
+            index: 0,
+            events: Vec::new(),
+        }
+    }
+
+    pub fn run(&mut self) {
+        _ = self.process_byte();
+    }
+
+    fn get_byte(&self) -> Result<u8, ()> {
+        self.bytes.get(self.index).map(|b| b.to_owned()).ok_or(())
+    }
+
+    fn inc(&mut self) {
+        self.index += 1;
+    }
+
+    fn process_byte(&mut self) -> Result<(), ()> {
+        let byte = self.get_byte()?;
+        self.inc();
+        match byte {
+            b'$' => {
+                if self.index > 0 {
+                    self.events.push(Event::TextEnd(self.index - 1));
+                }
+                if self.get_byte()? == b'$' {
+                    self.inc();
+                    self.process_block()
+                } else {
+                    self.process_inline()
+                }
+            }
+            b'\\' => {
+                self.inc();
+                self.process_byte()
+            }
+            b'`' => self.process_backtick(),
+            _ => self.process_byte(),
+        }
+    }
+
+    fn process_backtick(&mut self) -> Result<(), ()> {
+        let mut n_back_ticks = 1;
+        loop {
+            let byte = self.get_byte()?;
+            self.inc();
+            if byte == b'`' {
+                n_back_ticks += 1;
+            } else {
+                break;
+            }
+        }
+        loop {
+            let index = self.index
+                + n_back_ticks
+                + self.string[self.index..]
+                    .find(&"`".repeat(n_back_ticks))
+                    .ok_or(())?;
+            self.index = index;
+            match self.bytes.get(index) {
+                Some(byte) if *byte == b'`' => (),
+                _ => break,
+            }
+        }
+        self.process_byte()
+    }
+
+    fn process_block(&mut self) -> Result<(), ()> {
+        self.events.push(Event::Begin(self.index));
+        loop {
+            let index = self.index + self.string[self.index..].find(BLOCK_DELIM).ok_or(())?;
+
+            // Check `\`.
+            let mut escaped = false;
+            let mut checking = index;
+            loop {
+                checking -= 1;
+                if self.bytes.get(checking) == Some(&b'\\') {
+                    escaped = !escaped;
+                } else {
+                    break;
+                }
+            }
+            if !escaped {
+                self.events.push(Event::BlockEnd(index));
+                self.index = index + BLOCK_DELIM.len();
+                self.events.push(Event::Begin(self.index));
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn process_inline(&mut self) -> Result<(), ()> {
+        self.events.push(Event::Begin(self.index));
+        loop {
+            let index = self.index + self.string[self.index..].find(INLINE_DELIM).ok_or(())?;
+
+            // Check `\`.
+            let mut escaped = false;
+            let mut checking = index;
+            loop {
+                checking -= 1;
+                if self.bytes.get(checking) == Some(&b'\\') {
+                    escaped = !escaped;
+                } else {
+                    break;
+                }
+            }
+            if !escaped {
+                self.events.push(Event::InlineEnd(index));
+                self.index = index + INLINE_DELIM.len();
+                self.events.push(Event::Begin(self.index));
+                break;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Process a `block` that is either a full code block or not.
