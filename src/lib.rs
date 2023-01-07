@@ -208,6 +208,11 @@ fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashM
     map
 }
 
+pub enum Render {
+    Text(String),
+    Task(JoinHandle<String>),
+}
+
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
 async fn process_chapter(
     raw_content: String,
@@ -216,8 +221,8 @@ async fn process_chapter(
     stylesheet_header: String,
     include_src: bool,
 ) -> String {
-    let mut rendered_vec = Vec::new();
-    rendered_vec.push(stylesheet_header.to_owned());
+    let mut rendering = Vec::new();
+    rendering.push(Render::Text(stylesheet_header.to_owned()));
 
     let mut scan = Scan::new(&raw_content);
     scan.run();
@@ -227,26 +232,37 @@ async fn process_chapter(
     for event in events {
         match *event {
             Event::Begin(begin) => checkpoint = begin,
-            Event::TextEnd(end) => rendered_vec.push((&raw_content[checkpoint..end]).into()),
+            Event::TextEnd(end) => {
+                rendering.push(Render::Text((&raw_content[checkpoint..end]).into()))
+            }
             Event::InlineEnd(end) => {
                 let inline_feed = (&raw_content[checkpoint..end]).into();
-                let inline_block = render(inline_feed, inline_opts.clone(), include_src).await;
-                rendered_vec.push(inline_block);
+                let inline_block = spawn(render(inline_feed, inline_opts.clone(), include_src));
+                rendering.push(Render::Task(inline_block));
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
                 let block_feed = (&raw_content[checkpoint..end]).into();
-                let block = render(block_feed, display_opts.clone(), include_src).await;
-                rendered_vec.push(block);
+                let block = spawn(render(block_feed, display_opts.clone(), include_src));
+                rendering.push(Render::Task(block));
                 checkpoint = end;
             }
         }
     }
 
     if raw_content.len() - 1 > checkpoint {
-        rendered_vec.push((&raw_content[checkpoint..raw_content.len()]).into());
+        rendering.push(Render::Text(
+            (&raw_content[checkpoint..raw_content.len()]).into(),
+        ));
     }
-    rendered_vec.join("")
+    let mut rendered = Vec::with_capacity(rendering.len());
+    for r in rendering {
+        rendered.push(match r {
+            Render::Text(t) => t,
+            Render::Task(t) => t.await.expect("A tokio task panicked."),
+        });
+    }
+    rendered.join("")
 }
 
 #[derive(Debug)]
