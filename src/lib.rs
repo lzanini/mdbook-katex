@@ -323,15 +323,18 @@ impl<'a> Scan<'a> {
             }
         }
         loop {
-            let index = self.index
-                + n_back_ticks
-                + self.string[self.index..]
-                    .find(&"`".repeat(n_back_ticks))
-                    .ok_or(())?;
-            self.index = index;
-            match self.bytes.get(index) {
-                Some(byte) if *byte == b'`' => (),
-                _ => break,
+            self.index += self.string[self.index..]
+                .find(&"`".repeat(n_back_ticks))
+                .ok_or(())?
+                + n_back_ticks;
+            if self.get_byte()? == b'`' {
+                // Skip excessive backticks.
+                self.inc();
+                while let b'`' = self.get_byte()? {
+                    self.inc();
+                }
+            } else {
+                break;
             }
         }
         self.process_byte()
