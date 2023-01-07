@@ -255,9 +255,9 @@ async fn process_chapter(
     }
 
     if raw_content.len() - 1 > checkpoint {
-        let block = (&raw_content[checkpoint..raw_content.len()]).into();
-        eprintln!("Pushing text: {block}.");
-        rendered_vec.push(block);
+        let text_block = (&raw_content[checkpoint..raw_content.len()]).into();
+        dbg!(&text_block);
+        rendered_vec.push(text_block);
     }
     rendered_vec.join("")
 }
@@ -374,7 +374,7 @@ impl<'a> Scan<'a> {
             }
         }
 
-        Ok(())
+        self.process_byte()
     }
 
     fn process_inline(&mut self) -> Result<(), ()> {
@@ -401,7 +401,7 @@ impl<'a> Scan<'a> {
             }
         }
 
-        Ok(())
+        self.process_byte()
     }
 }
 
