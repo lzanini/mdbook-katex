@@ -227,24 +227,16 @@ async fn process_chapter(
     for event in events {
         match *event {
             Event::Begin(begin) => checkpoint = begin,
-            Event::TextEnd(end) => {
-                let text_block = (&raw_content[checkpoint..end]).into();
-                dbg!(&text_block);
-                rendered_vec.push(text_block);
-            }
+            Event::TextEnd(end) => rendered_vec.push((&raw_content[checkpoint..end]).into()),
             Event::InlineEnd(end) => {
                 let inline_feed = (&raw_content[checkpoint..end]).into();
-                dbg!(&inline_feed);
                 let inline_block = render(inline_feed, inline_opts.clone(), include_src).await;
-                dbg!(&inline_block);
                 rendered_vec.push(inline_block);
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
                 let block_feed = (&raw_content[checkpoint..end]).into();
-                dbg!(&block_feed);
                 let block = render(block_feed, display_opts.clone(), include_src).await;
-                dbg!(&block);
                 rendered_vec.push(block);
                 checkpoint = end;
             }
@@ -252,9 +244,7 @@ async fn process_chapter(
     }
 
     if raw_content.len() - 1 > checkpoint {
-        let text_block = (&raw_content[checkpoint..raw_content.len()]).into();
-        dbg!(&text_block);
-        rendered_vec.push(text_block);
+        rendered_vec.push((&raw_content[checkpoint..raw_content.len()]).into());
     }
     rendered_vec.join("")
 }
@@ -325,8 +315,8 @@ impl<'a> Scan<'a> {
         let mut n_back_ticks = 1;
         loop {
             let byte = self.get_byte()?;
-            self.inc();
             if byte == b'`' {
+                self.inc();
                 n_back_ticks += 1;
             } else {
                 break;
