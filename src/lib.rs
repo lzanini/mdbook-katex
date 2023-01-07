@@ -230,12 +230,12 @@ async fn process_chapter(
             Event::TextEnd(end) => rendered.push_str(&raw_content[checkpoint..end]),
             Event::InlineEnd(end) => {
                 let inline_feed = &raw_content[checkpoint..end];
-                render(inline_feed, &mut rendered, inline_opts.clone(), include_src);
+                render(inline_feed, &mut rendered, &inline_opts, include_src);
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
                 let block_feed = &raw_content[checkpoint..end];
-                render(block_feed, &mut rendered, display_opts.clone(), include_src);
+                render(block_feed, &mut rendered, &display_opts, include_src);
                 checkpoint = end;
             }
         }
@@ -393,7 +393,7 @@ impl<'a> Scan<'a> {
     }
 }
 
-pub fn render(item: &str, output: &mut String, opts: Opts, include_src: bool) {
+pub fn render(item: &str, output: &mut String, opts: &Opts, include_src: bool) {
     // try to render equation
     if let Ok(rendered) = katex::render_with_opts(item, opts) {
         let rendered = rendered.replace('\n', " ");
