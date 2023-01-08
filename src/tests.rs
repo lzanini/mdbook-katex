@@ -46,6 +46,8 @@ fn mock_build_opts(
         .unwrap();
     let extra_opts = ExtraOpts {
         include_src: cfg.include_src,
+        block_delimiter: cfg.block_delimiter.clone(),
+        inline_delimiter: cfg.inline_delimiter.clone(),
     };
     (inline_opts, display_opts, extra_opts)
 }
@@ -83,7 +85,7 @@ fn test_render_with_cfg(
                 inline_opts.clone(),
                 display_opts.clone(),
                 stylesheet_header.clone(),
-                extra_opts,
+                extra_opts.clone(),
             ))
         })
         .collect();

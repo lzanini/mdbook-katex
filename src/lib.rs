@@ -19,8 +19,36 @@ use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
-const BLOCK_DELIM: &str = "$$";
-const INLINE_DELIM: &str = "$";
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Delimiter {
+    pub left: String,
+    pub right: String,
+}
+
+impl Delimiter {
+    pub fn same(delimiter: String) -> Self {
+        Self {
+            left: delimiter.clone(),
+            right: delimiter,
+        }
+    }
+
+    pub fn first(&self) -> u8 {
+        self.left.as_bytes()[0]
+    }
+
+    pub fn match_left(&self, to_match: &[u8]) -> bool {
+        if self.left.len() > to_match.len() {
+            return false;
+        }
+        for (we, they) in self.left.as_bytes().iter().zip(to_match) {
+            if we != they {
+                return false;
+            }
+        }
+        true
+    }
+}
 
 #[derive(Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -38,6 +66,8 @@ pub struct KatexConfig {
     pub static_css: bool,
     pub include_src: bool,
     pub macros: Option<String>,
+    pub block_delimiter: Delimiter,
+    pub inline_delimiter: Delimiter,
 }
 
 impl Default for KatexConfig {
@@ -57,13 +87,17 @@ impl Default for KatexConfig {
             static_css: false,
             include_src: false,
             macros: None,
+            block_delimiter: Delimiter::same("$$".into()),
+            inline_delimiter: Delimiter::same("$".into()),
         }
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct ExtraOpts {
     pub include_src: bool,
+    pub block_delimiter: Delimiter,
+    pub inline_delimiter: Delimiter,
 }
 
 // ensures that both the preprocessor and renderers are enabled
@@ -140,7 +174,7 @@ impl Preprocessor for KatexProcessor {
                 inline_opts.clone(),
                 display_opts.clone(),
                 header,
-                extra_opts,
+                extra_opts.clone(),
             )));
         }
         let mut contents = VecDeque::with_capacity(tasks.len());
@@ -199,6 +233,8 @@ fn build_opts(
         .unwrap();
     let extra_opts = ExtraOpts {
         include_src: cfg.include_src,
+        block_delimiter: cfg.block_delimiter.clone(),
+        inline_delimiter: cfg.inline_delimiter.clone(),
     };
     (inline_opts, display_opts, extra_opts)
 }
@@ -235,7 +271,11 @@ async fn process_chapter(
     let mut rendering = Vec::new();
     rendering.push(Render::Text(stylesheet_header.to_owned()));
 
-    let mut scan = Scan::new(&raw_content);
+    let mut scan = Scan::new(
+        &raw_content,
+        &extra_opts.block_delimiter,
+        &extra_opts.inline_delimiter,
+    );
     scan.run();
 
     let mut checkpoint = 0;
@@ -248,13 +288,14 @@ async fn process_chapter(
             }
             Event::InlineEnd(end) => {
                 let inline_feed = (&raw_content[checkpoint..end]).into();
-                let inline_block = spawn(render(inline_feed, inline_opts.clone(), extra_opts));
+                let inline_block =
+                    spawn(render(inline_feed, inline_opts.clone(), extra_opts.clone()));
                 rendering.push(Render::Task(inline_block));
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
                 let block_feed = (&raw_content[checkpoint..end]).into();
-                let block = spawn(render(block_feed, display_opts.clone(), extra_opts));
+                let block = spawn(render(block_feed, display_opts.clone(), extra_opts.clone()));
                 rendering.push(Render::Task(block));
                 checkpoint = end;
             }
@@ -290,15 +331,23 @@ pub struct Scan<'a> {
     bytes: &'a [u8],
     index: usize,
     pub events: Vec<Event>,
+    block_delimiter: &'a Delimiter,
+    inline_delimiter: &'a Delimiter,
 }
 
 impl<'a> Scan<'a> {
-    pub fn new(string: &'a str) -> Self {
+    pub fn new(
+        string: &'a str,
+        block_delimiter: &'a Delimiter,
+        inline_delimiter: &'a Delimiter,
+    ) -> Self {
         Self {
             string,
             bytes: string.as_bytes(),
             index: 0,
             events: Vec::new(),
+            block_delimiter,
+            inline_delimiter,
         }
     }
 
@@ -318,15 +367,19 @@ impl<'a> Scan<'a> {
         let byte = self.get_byte()?;
         self.inc();
         match byte {
-            b'$' => {
+            b if b == self.block_delimiter.first() || b == self.inline_delimiter.first() => {
+                self.index -= 1;
                 if self.index > 0 {
-                    self.events.push(Event::TextEnd(self.index - 1));
+                    self.events.push(Event::TextEnd(self.index));
                 }
-                if self.get_byte()? == b'$' {
-                    self.inc();
-                    self.process_block()
+                if self.block_delimiter.match_left(&self.bytes[self.index..]) {
+                    self.index += self.block_delimiter.left.len();
+                    self.process_delimit(false)
+                } else if self.inline_delimiter.match_left(&self.bytes[self.index..]) {
+                    self.index += self.inline_delimiter.left.len();
+                    self.process_delimit(true)
                 } else {
-                    self.process_inline()
+                    self.process_byte()
                 }
             }
             b'\\' => {
@@ -367,14 +420,19 @@ impl<'a> Scan<'a> {
         self.process_byte()
     }
 
-    fn process_block(&mut self) -> Result<(), ()> {
+    fn process_delimit(&mut self, inline: bool) -> Result<(), ()> {
+        let delim = if inline {
+            self.inline_delimiter
+        } else {
+            self.block_delimiter
+        };
         self.events.push(Event::Begin(self.index));
         loop {
-            let index = self.index + self.string[self.index..].find(BLOCK_DELIM).ok_or(())?;
+            self.index += self.string[self.index..].find(&delim.right).ok_or(())?;
 
             // Check `\`.
             let mut escaped = false;
-            let mut checking = index;
+            let mut checking = self.index;
             loop {
                 checking -= 1;
                 if self.bytes.get(checking) == Some(&b'\\') {
@@ -384,35 +442,13 @@ impl<'a> Scan<'a> {
                 }
             }
             if !escaped {
-                self.events.push(Event::BlockEnd(index));
-                self.index = index + BLOCK_DELIM.len();
-                self.events.push(Event::Begin(self.index));
-                break;
-            }
-        }
-
-        self.process_byte()
-    }
-
-    fn process_inline(&mut self) -> Result<(), ()> {
-        self.events.push(Event::Begin(self.index));
-        loop {
-            let index = self.index + self.string[self.index..].find(INLINE_DELIM).ok_or(())?;
-
-            // Check `\`.
-            let mut escaped = false;
-            let mut checking = index;
-            loop {
-                checking -= 1;
-                if self.bytes.get(checking) == Some(&b'\\') {
-                    escaped = !escaped;
+                let end_event = if inline {
+                    Event::InlineEnd(self.index)
                 } else {
-                    break;
-                }
-            }
-            if !escaped {
-                self.events.push(Event::InlineEnd(index));
-                self.index = index + INLINE_DELIM.len();
+                    Event::BlockEnd(self.index)
+                };
+                self.events.push(end_event);
+                self.index += delim.right.len();
                 self.events.push(Event::Begin(self.index));
                 break;
             }
