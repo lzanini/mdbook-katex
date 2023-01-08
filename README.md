@@ -45,7 +45,7 @@ The preprocessor supports passing options to the katex-rs crate in order
 to configure its behaviour. These options are specified under the
 `[preprocessor.katex]` directive.
 
-The currently spported arguments are:
+The currently supported arguments are:
 | Argument | Type |
 | :- | :- |
 | [`leqno`](https://katex.org/docs/options.html#:~:text=default-,leqno,-boolean) | `boolean` |
@@ -62,7 +62,9 @@ There are also options to configure the behaviour of the preprocessor:
 | :- | :- | :- |
 | `static-css` | `false` | Generates fully static html pages with katex styling |
 | `macros` | `None` | Path to macros file (see [Custom macros](#custom-macros)) |
-| `include-src` | `false` | Append the source code for the rendered math expressions after them |
+| `include-src` | `false` | Include math expressions source code (See [Including math Source](#including-math-source)) |
+| `block-delimiter` | `{left = "$$", right = "$$"}` | See [Custom delimiter](#custom-delimiter) |
+| `inline-delimiter` | `{left = "$", right = "$"}` | See [Custom delimiter](#custom-delimiter) |
 
 For example:
 
@@ -71,6 +73,8 @@ For example:
 renderers = ["html"]
 static-css = false
 include-src = false
+block-delimiter = {left = "$$", right = "$$"}
+inline-delimiter = {left = "$", right = "$"}
 ```
 
 ## Custom macros
@@ -129,6 +133,20 @@ The math source code is included in a minimal fashion, and it is up to the users
 For more information about adding custom CSS and JavaScript in `mdbook`, see [additional-css and additional-js](https://rust-lang.github.io/mdBook/format/configuration/renderers.html#html-renderer-options).
 
 If you need more information about this feature, please check the issues or file a new issue.
+
+## Custom delimiter
+
+To change the delimiters for math expressions, set the `block-delimiter` and `inline-delimiter` under `[preprocessor.katex]`.
+For example, to use `\(`and `\)` for inline math and `\[` and `\]` for math block, set
+
+```toml
+[preprocessor.katex]
+renderers = ["html"]
+block-delimiter = {left = "\\[", right = "\\]"}
+inline-delimiter = {left = "\\(", right = "\\)"}
+```
+
+Notice that the double backslash above are just used to escape `\` in the TOML format.
 
 ## Caveats
 
