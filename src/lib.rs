@@ -143,7 +143,6 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        dbg!(&cfg);
         let (inline_opts, display_opts, extra_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
