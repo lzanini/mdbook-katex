@@ -19,7 +19,7 @@ fn test_support_html() {
 fn mock_build_opts(
     macros: HashMap<String, String>,
     cfg: &KatexConfig,
-) -> (katex::Opts, katex::Opts) {
+) -> (katex::Opts, katex::Opts, ExtraOpts) {
     let configure_katex_opts = || -> katex::OptsBuilder {
         katex::Opts::builder()
             .leqno(cfg.leqno)
@@ -44,7 +44,10 @@ fn mock_build_opts(
         .macros(macros)
         .build()
         .unwrap();
-    (inline_opts, display_opts)
+    let extra_opts = ExtraOpts {
+        include_src: cfg.include_src,
+    };
+    (inline_opts, display_opts, extra_opts)
 }
 
 fn test_render(raw_content: &str) -> (String, String) {
@@ -64,7 +67,7 @@ fn test_render_with_cfg(
     macros: HashMap<String, String>,
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
-    let (inline_opts, display_opts) = mock_build_opts(macros, &cfg);
+    let (inline_opts, display_opts, extra_opts) = mock_build_opts(macros, &cfg);
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
     let rt = Runtime::new().unwrap();
@@ -80,7 +83,7 @@ fn test_render_with_cfg(
                 inline_opts.clone(),
                 display_opts.clone(),
                 stylesheet_header.clone(),
-                cfg.include_src,
+                extra_opts,
             ))
         })
         .collect();
@@ -204,7 +207,7 @@ fn test_katex_rendering_vmatrix() {
         static_css: false,
         ..KatexConfig::default()
     };
-    let (_, display_opts) = mock_build_opts(HashMap::new(), &cfg);
+    let (_, display_opts, _) = mock_build_opts(HashMap::new(), &cfg);
     let _ = katex::render_with_opts(math_expr, display_opts).unwrap();
 }
 

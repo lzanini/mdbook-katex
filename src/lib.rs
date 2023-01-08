@@ -61,6 +61,11 @@ impl Default for KatexConfig {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct ExtraOpts {
+    pub include_src: bool,
+}
+
 // ensures that both the preprocessor and renderers are enabled
 // in the `book.toml`; the renderer forces mdbook to separate all
 // renderers into their respective directories, ensuring that the
@@ -104,7 +109,7 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts) = build_opts(ctx, &cfg);
+        let (inline_opts, display_opts, extra_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
@@ -135,7 +140,7 @@ impl Preprocessor for KatexProcessor {
                 inline_opts.clone(),
                 display_opts.clone(),
                 header,
-                cfg.include_src,
+                extra_opts,
             )));
         }
         let mut contents = VecDeque::with_capacity(tasks.len());
@@ -160,7 +165,10 @@ impl Preprocessor for KatexProcessor {
     }
 }
 
-fn build_opts(ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+fn build_opts(
+    ctx: &PreprocessorContext,
+    cfg: &KatexConfig,
+) -> (katex::Opts, katex::Opts, ExtraOpts) {
     let configure_katex_opts = || -> katex::OptsBuilder {
         katex::Opts::builder()
             .leqno(cfg.leqno)
@@ -189,7 +197,10 @@ fn build_opts(ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, kat
         .macros(macros)
         .build()
         .unwrap();
-    (inline_opts, display_opts)
+    let extra_opts = ExtraOpts {
+        include_src: cfg.include_src,
+    };
+    (inline_opts, display_opts, extra_opts)
 }
 
 fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashMap<String, String> {
@@ -219,7 +230,7 @@ async fn process_chapter(
     inline_opts: Opts,
     display_opts: Opts,
     stylesheet_header: String,
-    include_src: bool,
+    extra_opts: ExtraOpts,
 ) -> String {
     let mut rendering = Vec::new();
     rendering.push(Render::Text(stylesheet_header.to_owned()));
@@ -237,13 +248,13 @@ async fn process_chapter(
             }
             Event::InlineEnd(end) => {
                 let inline_feed = (&raw_content[checkpoint..end]).into();
-                let inline_block = spawn(render(inline_feed, inline_opts.clone(), include_src));
+                let inline_block = spawn(render(inline_feed, inline_opts.clone(), extra_opts));
                 rendering.push(Render::Task(inline_block));
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
                 let block_feed = (&raw_content[checkpoint..end]).into();
-                let block = spawn(render(block_feed, display_opts.clone(), include_src));
+                let block = spawn(render(block_feed, display_opts.clone(), extra_opts));
                 rendering.push(Render::Task(block));
                 checkpoint = end;
             }
@@ -411,13 +422,13 @@ impl<'a> Scan<'a> {
     }
 }
 
-pub async fn render(item: String, opts: Opts, include_src: bool) -> String {
+pub async fn render(item: String, opts: Opts, extra_opts: ExtraOpts) -> String {
     let mut rendered_content = String::new();
 
     // try to render equation
     if let Ok(rendered) = katex::render_with_opts(&item, opts) {
         let rendered = rendered.replace('\n', " ");
-        if include_src {
+        if extra_opts.include_src {
             // Wrap around with `data.katex-src` tag.
             rendered_content.push_str(r#"<data class="katex-src" value=""#);
             rendered_content.push_str(&item.replace('"', r#"\""#));
