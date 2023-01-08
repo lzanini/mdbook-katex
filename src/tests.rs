@@ -19,7 +19,7 @@ fn test_support_html() {
 fn mock_build_opts(
     macros: HashMap<String, String>,
     cfg: &KatexConfig,
-) -> (katex::Opts, katex::Opts) {
+) -> (katex::Opts, katex::Opts, ExtraOpts) {
     let configure_katex_opts = || -> katex::OptsBuilder {
         katex::Opts::builder()
             .leqno(cfg.leqno)
@@ -44,7 +44,12 @@ fn mock_build_opts(
         .macros(macros)
         .build()
         .unwrap();
-    (inline_opts, display_opts)
+    let extra_opts = ExtraOpts {
+        include_src: cfg.include_src,
+        block_delimiter: cfg.block_delimiter.clone(),
+        inline_delimiter: cfg.inline_delimiter.clone(),
+    };
+    (inline_opts, display_opts, extra_opts)
 }
 
 fn test_render(raw_content: &str) -> (String, String) {
@@ -64,7 +69,7 @@ fn test_render_with_cfg(
     macros: HashMap<String, String>,
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
-    let (inline_opts, display_opts) = mock_build_opts(macros, &cfg);
+    let (inline_opts, display_opts, extra_opts) = mock_build_opts(macros, &cfg);
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
     let rt = Runtime::new().unwrap();
@@ -80,7 +85,7 @@ fn test_render_with_cfg(
                 inline_opts.clone(),
                 display_opts.clone(),
                 stylesheet_header.clone(),
-                cfg.include_src,
+                extra_opts.clone(),
             ))
         })
         .collect();
@@ -204,7 +209,7 @@ fn test_katex_rendering_vmatrix() {
         static_css: false,
         ..KatexConfig::default()
     };
-    let (_, display_opts) = mock_build_opts(HashMap::new(), &cfg);
+    let (_, display_opts, _) = mock_build_opts(HashMap::new(), &cfg);
     let _ = katex::render_with_opts(math_expr, display_opts).unwrap();
 }
 
@@ -259,4 +264,29 @@ $$";
         "`\\` and `` ` `` <span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.3669em;\"></span><span class=\"mrel\">⇐</span></span></span></span>\n```\n`\\` and `` ` ``\n```\nwhile ` ``` ` and ````` ```` ````` <span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.3669em;\"></span><span class=\"mrel\">⇐</span></span></span></span>\n``````\n` ``` ` and ````` ```` `````\n``````\n<span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.8889em;vertical-align:-0.1944em;\"></span><span class=\"mrel\">⇑</span></span></span></span></span>",
         rendered_content[0]
     );
+}
+
+#[test]
+fn test_inline_rendering_w_custom_delimiter() {
+    let raw_content = r"These $\(a\times b\) are from
+\[
+\int_0^abdx
+\]";
+    let (stylesheet_header, rendered_content) = test_render_with_cfg(
+        &[raw_content],
+        HashMap::new(),
+        KatexConfig {
+            inline_delimiter: Delimiter {
+                left: r"\(".into(),
+                right: r"\)".into(),
+            },
+            block_delimiter: Delimiter {
+                left: r"\[".into(),
+                right: r"\]".into(),
+            },
+            ..KatexConfig::default()
+        },
+    );
+    let expected_output = stylesheet_header + "These $<span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.6667em;vertical-align:-0.0833em;\"></span><span class=\"mord mathnormal\">a</span><span class=\"mspace\" style=\"margin-right:0.2222em;\"></span><span class=\"mbin\">×</span><span class=\"mspace\" style=\"margin-right:0.2222em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:0.6944em;\"></span><span class=\"mord mathnormal\">b</span></span></span></span> are from\n<span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:2.3262em;vertical-align:-0.9119em;\"></span><span class=\"mop\"><span class=\"mop op-symbol large-op\" style=\"margin-right:0.44445em;position:relative;top:-0.0011em;\">∫</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.4143em;\"><span style=\"top:-1.7881em;margin-left:-0.4445em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mtight\">0</span></span></span><span style=\"top:-3.8129em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">a</span></span></span></span><span class=\"vlist-s\">\u{200b}</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.9119em;\"><span></span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\">b</span><span class=\"mord mathnormal\">d</span><span class=\"mord mathnormal\">x</span></span></span></span></span>";
+    debug_assert_eq!(expected_output, rendered_content[0]);
 }

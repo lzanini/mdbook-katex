@@ -19,10 +19,38 @@ use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
-const BLOCK_DELIM: &str = "$$";
-const INLINE_DELIM: &str = "$";
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Delimiter {
+    pub left: String,
+    pub right: String,
+}
 
-#[derive(Deserialize, Serialize)]
+impl Delimiter {
+    pub fn same(delimiter: String) -> Self {
+        Self {
+            left: delimiter.clone(),
+            right: delimiter,
+        }
+    }
+
+    pub fn first(&self) -> u8 {
+        self.left.as_bytes()[0]
+    }
+
+    pub fn match_left(&self, to_match: &[u8]) -> bool {
+        if self.left.len() > to_match.len() {
+            return false;
+        }
+        for (we, they) in self.left.as_bytes().iter().zip(to_match) {
+            if we != they {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
     // options for the katex-rust crate
@@ -38,6 +66,8 @@ pub struct KatexConfig {
     pub static_css: bool,
     pub include_src: bool,
     pub macros: Option<String>,
+    pub block_delimiter: Delimiter,
+    pub inline_delimiter: Delimiter,
 }
 
 impl Default for KatexConfig {
@@ -57,8 +87,17 @@ impl Default for KatexConfig {
             static_css: false,
             include_src: false,
             macros: None,
+            block_delimiter: Delimiter::same("$$".into()),
+            inline_delimiter: Delimiter::same("$".into()),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExtraOpts {
+    pub include_src: bool,
+    pub block_delimiter: Delimiter,
+    pub inline_delimiter: Delimiter,
 }
 
 // ensures that both the preprocessor and renderers are enabled
@@ -104,7 +143,7 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts) = build_opts(ctx, &cfg);
+        let (inline_opts, display_opts, extra_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
@@ -135,7 +174,7 @@ impl Preprocessor for KatexProcessor {
                 inline_opts.clone(),
                 display_opts.clone(),
                 header,
-                cfg.include_src,
+                extra_opts.clone(),
             )));
         }
         let mut contents = VecDeque::with_capacity(tasks.len());
@@ -160,7 +199,10 @@ impl Preprocessor for KatexProcessor {
     }
 }
 
-fn build_opts(ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, katex::Opts) {
+fn build_opts(
+    ctx: &PreprocessorContext,
+    cfg: &KatexConfig,
+) -> (katex::Opts, katex::Opts, ExtraOpts) {
     let configure_katex_opts = || -> katex::OptsBuilder {
         katex::Opts::builder()
             .leqno(cfg.leqno)
@@ -189,7 +231,12 @@ fn build_opts(ctx: &PreprocessorContext, cfg: &KatexConfig) -> (katex::Opts, kat
         .macros(macros)
         .build()
         .unwrap();
-    (inline_opts, display_opts)
+    let extra_opts = ExtraOpts {
+        include_src: cfg.include_src,
+        block_delimiter: cfg.block_delimiter.clone(),
+        inline_delimiter: cfg.inline_delimiter.clone(),
+    };
+    (inline_opts, display_opts, extra_opts)
 }
 
 fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashMap<String, String> {
@@ -219,12 +266,16 @@ async fn process_chapter(
     inline_opts: Opts,
     display_opts: Opts,
     stylesheet_header: String,
-    include_src: bool,
+    extra_opts: ExtraOpts,
 ) -> String {
     let mut rendering = Vec::new();
     rendering.push(Render::Text(stylesheet_header.to_owned()));
 
-    let mut scan = Scan::new(&raw_content);
+    let mut scan = Scan::new(
+        &raw_content,
+        &extra_opts.block_delimiter,
+        &extra_opts.inline_delimiter,
+    );
     scan.run();
 
     let mut checkpoint = 0;
@@ -237,13 +288,14 @@ async fn process_chapter(
             }
             Event::InlineEnd(end) => {
                 let inline_feed = (&raw_content[checkpoint..end]).into();
-                let inline_block = spawn(render(inline_feed, inline_opts.clone(), include_src));
+                let inline_block =
+                    spawn(render(inline_feed, inline_opts.clone(), extra_opts.clone()));
                 rendering.push(Render::Task(inline_block));
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
                 let block_feed = (&raw_content[checkpoint..end]).into();
-                let block = spawn(render(block_feed, display_opts.clone(), include_src));
+                let block = spawn(render(block_feed, display_opts.clone(), extra_opts.clone()));
                 rendering.push(Render::Task(block));
                 checkpoint = end;
             }
@@ -279,20 +331,28 @@ pub struct Scan<'a> {
     bytes: &'a [u8],
     index: usize,
     pub events: Vec<Event>,
+    block_delimiter: &'a Delimiter,
+    inline_delimiter: &'a Delimiter,
 }
 
 impl<'a> Scan<'a> {
-    pub fn new(string: &'a str) -> Self {
+    pub fn new(
+        string: &'a str,
+        block_delimiter: &'a Delimiter,
+        inline_delimiter: &'a Delimiter,
+    ) -> Self {
         Self {
             string,
             bytes: string.as_bytes(),
             index: 0,
             events: Vec::new(),
+            block_delimiter,
+            inline_delimiter,
         }
     }
 
     pub fn run(&mut self) {
-        _ = self.process_byte();
+        while let Ok(()) = self.process_byte() {}
     }
 
     fn get_byte(&self) -> Result<u8, ()> {
@@ -307,24 +367,23 @@ impl<'a> Scan<'a> {
         let byte = self.get_byte()?;
         self.inc();
         match byte {
-            b'$' => {
-                if self.index > 0 {
-                    self.events.push(Event::TextEnd(self.index - 1));
-                }
-                if self.get_byte()? == b'$' {
-                    self.inc();
-                    self.process_block()
+            b if b == self.block_delimiter.first() || b == self.inline_delimiter.first() => {
+                self.index -= 1;
+                if self.block_delimiter.match_left(&self.bytes[self.index..]) {
+                    self.process_delimit(false)?;
+                } else if self.inline_delimiter.match_left(&self.bytes[self.index..]) {
+                    self.process_delimit(true)?;
                 } else {
-                    self.process_inline()
+                    self.inc();
                 }
             }
             b'\\' => {
                 self.inc();
-                self.process_byte()
             }
-            b'`' => self.process_backtick(),
-            _ => self.process_byte(),
+            b'`' => self.process_backtick()?,
+            _ => (),
         }
+        Ok(())
     }
 
     fn process_backtick(&mut self) -> Result<(), ()> {
@@ -353,17 +412,28 @@ impl<'a> Scan<'a> {
                 break;
             }
         }
-        self.process_byte()
+        Ok(())
     }
 
-    fn process_block(&mut self) -> Result<(), ()> {
+    fn process_delimit(&mut self, inline: bool) -> Result<(), ()> {
+        if self.index > 0 {
+            self.events.push(Event::TextEnd(self.index));
+        }
+
+        let delim = if inline {
+            self.inline_delimiter
+        } else {
+            self.block_delimiter
+        };
+        self.index += delim.left.len();
         self.events.push(Event::Begin(self.index));
+
         loop {
-            let index = self.index + self.string[self.index..].find(BLOCK_DELIM).ok_or(())?;
+            self.index += self.string[self.index..].find(&delim.right).ok_or(())?;
 
             // Check `\`.
             let mut escaped = false;
-            let mut checking = index;
+            let mut checking = self.index;
             loop {
                 checking -= 1;
                 if self.bytes.get(checking) == Some(&b'\\') {
@@ -373,51 +443,29 @@ impl<'a> Scan<'a> {
                 }
             }
             if !escaped {
-                self.events.push(Event::BlockEnd(index));
-                self.index = index + BLOCK_DELIM.len();
-                self.events.push(Event::Begin(self.index));
-                break;
-            }
-        }
-
-        self.process_byte()
-    }
-
-    fn process_inline(&mut self) -> Result<(), ()> {
-        self.events.push(Event::Begin(self.index));
-        loop {
-            let index = self.index + self.string[self.index..].find(INLINE_DELIM).ok_or(())?;
-
-            // Check `\`.
-            let mut escaped = false;
-            let mut checking = index;
-            loop {
-                checking -= 1;
-                if self.bytes.get(checking) == Some(&b'\\') {
-                    escaped = !escaped;
+                let end_event = if inline {
+                    Event::InlineEnd(self.index)
                 } else {
-                    break;
-                }
-            }
-            if !escaped {
-                self.events.push(Event::InlineEnd(index));
-                self.index = index + INLINE_DELIM.len();
+                    Event::BlockEnd(self.index)
+                };
+                self.events.push(end_event);
+                self.index += delim.right.len();
                 self.events.push(Event::Begin(self.index));
                 break;
             }
         }
 
-        self.process_byte()
+        Ok(())
     }
 }
 
-pub async fn render(item: String, opts: Opts, include_src: bool) -> String {
+pub async fn render(item: String, opts: Opts, extra_opts: ExtraOpts) -> String {
     let mut rendered_content = String::new();
 
     // try to render equation
     if let Ok(rendered) = katex::render_with_opts(&item, opts) {
         let rendered = rendered.replace('\n', " ");
-        if include_src {
+        if extra_opts.include_src {
             // Wrap around with `data.katex-src` tag.
             rendered_content.push_str(r#"<data class="katex-src" value=""#);
             rendered_content.push_str(&item.replace('"', r#"\""#));
