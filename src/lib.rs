@@ -352,7 +352,7 @@ impl<'a> Scan<'a> {
     }
 
     pub fn run(&mut self) {
-        _ = self.process_byte();
+        while let Ok(()) = self.process_byte() {}
     }
 
     fn get_byte(&self) -> Result<u8, ()> {
@@ -374,21 +374,19 @@ impl<'a> Scan<'a> {
                 }
                 if self.block_delimiter.match_left(&self.bytes[self.index..]) {
                     self.index += self.block_delimiter.left.len();
-                    self.process_delimit(false)
+                    self.process_delimit(false)?;
                 } else if self.inline_delimiter.match_left(&self.bytes[self.index..]) {
                     self.index += self.inline_delimiter.left.len();
-                    self.process_delimit(true)
-                } else {
-                    self.process_byte()
+                    self.process_delimit(true)?;
                 }
             }
             b'\\' => {
                 self.inc();
-                self.process_byte()
             }
-            b'`' => self.process_backtick(),
-            _ => self.process_byte(),
+            b'`' => self.process_backtick()?,
+            _ => (),
         }
+        Ok(())
     }
 
     fn process_backtick(&mut self) -> Result<(), ()> {
@@ -417,7 +415,7 @@ impl<'a> Scan<'a> {
                 break;
             }
         }
-        self.process_byte()
+        Ok(())
     }
 
     fn process_delimit(&mut self, inline: bool) -> Result<(), ()> {
@@ -454,7 +452,7 @@ impl<'a> Scan<'a> {
             }
         }
 
-        self.process_byte()
+        Ok(())
     }
 }
 
