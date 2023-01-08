@@ -50,7 +50,7 @@ impl Delimiter {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
     // options for the katex-rust crate
@@ -143,6 +143,7 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
+        dbg!(&cfg);
         let (inline_opts, display_opts, extra_opts) = build_opts(ctx, &cfg);
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
@@ -369,15 +370,12 @@ impl<'a> Scan<'a> {
         match byte {
             b if b == self.block_delimiter.first() || b == self.inline_delimiter.first() => {
                 self.index -= 1;
-                if self.index > 0 {
-                    self.events.push(Event::TextEnd(self.index));
-                }
                 if self.block_delimiter.match_left(&self.bytes[self.index..]) {
-                    self.index += self.block_delimiter.left.len();
                     self.process_delimit(false)?;
                 } else if self.inline_delimiter.match_left(&self.bytes[self.index..]) {
-                    self.index += self.inline_delimiter.left.len();
                     self.process_delimit(true)?;
+                } else {
+                    self.inc();
                 }
             }
             b'\\' => {
@@ -419,12 +417,18 @@ impl<'a> Scan<'a> {
     }
 
     fn process_delimit(&mut self, inline: bool) -> Result<(), ()> {
+        if self.index > 0 {
+            self.events.push(Event::TextEnd(self.index));
+        }
+
         let delim = if inline {
             self.inline_delimiter
         } else {
             self.block_delimiter
         };
+        self.index += delim.left.len();
         self.events.push(Event::Begin(self.index));
+
         loop {
             self.index += self.string[self.index..].find(&delim.right).ok_or(())?;
 
