@@ -16,42 +16,6 @@ fn test_support_html() {
     assert!(!preprocessor.supports_renderer("other_renderer"))
 }
 
-fn mock_build_opts(
-    macros: HashMap<String, String>,
-    cfg: &KatexConfig,
-) -> (katex::Opts, katex::Opts, ExtraOpts) {
-    let configure_katex_opts = || -> katex::OptsBuilder {
-        katex::Opts::builder()
-            .leqno(cfg.leqno)
-            .fleqn(cfg.fleqn)
-            .throw_on_error(cfg.throw_on_error)
-            .error_color(cfg.error_color.clone())
-            .min_rule_thickness(cfg.min_rule_thickness)
-            .max_size(cfg.max_size)
-            .max_expand(cfg.max_expand)
-            .trust(cfg.trust)
-            .clone()
-    };
-    let inline_opts = configure_katex_opts()
-        .display_mode(false)
-        .output_type(katex::OutputType::Html)
-        .macros(macros.clone())
-        .build()
-        .unwrap();
-    let display_opts = configure_katex_opts()
-        .display_mode(true)
-        .output_type(katex::OutputType::Html)
-        .macros(macros)
-        .build()
-        .unwrap();
-    let extra_opts = ExtraOpts {
-        include_src: cfg.include_src,
-        block_delimiter: cfg.block_delimiter.clone(),
-        inline_delimiter: cfg.inline_delimiter.clone(),
-    };
-    (inline_opts, display_opts, extra_opts)
-}
-
 fn test_render(raw_content: &str) -> (String, String) {
     let (stylesheet_header, mut rendered) = test_render_with_macro(&[raw_content], HashMap::new());
     (stylesheet_header, rendered.pop().unwrap())
@@ -69,7 +33,7 @@ fn test_render_with_cfg(
     macros: HashMap<String, String>,
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
-    let (inline_opts, display_opts, extra_opts) = mock_build_opts(macros, &cfg);
+    let (inline_opts, display_opts, extra_opts) = cfg.build_opts_from_macros(macros);
     let build_root = PathBuf::new();
     let build_dir = PathBuf::from("book");
     let rt = Runtime::new().unwrap();
@@ -158,7 +122,7 @@ fn test_macro_file_loading() {
     let cfg = get_config(&book_cfg).unwrap();
 
     debug_assert_eq!(
-        get_macro_path(&PathBuf::from("book"), &cfg.macros),
+        get_macro_path(PathBuf::from("book"), &cfg.macros),
         Some(PathBuf::from("book/macros.txt")) // We supply a root, just like the preproccessor context does
     );
 }
@@ -209,7 +173,7 @@ fn test_katex_rendering_vmatrix() {
         static_css: false,
         ..KatexConfig::default()
     };
-    let (_, display_opts, _) = mock_build_opts(HashMap::new(), &cfg);
+    let (_, display_opts, _) = cfg.build_opts_from_macros(HashMap::new());
     let _ = katex::render_with_opts(math_expr, display_opts).unwrap();
 }
 
