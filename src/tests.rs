@@ -34,13 +34,13 @@ fn mock_build_opts(
     };
     let inline_opts = configure_katex_opts()
         .display_mode(false)
-        .output_type(katex::OutputType::Html)
+        .output_type(katex::OutputType::HtmlAndMathml)
         .macros(macros.clone())
         .build()
         .unwrap();
     let display_opts = configure_katex_opts()
         .display_mode(true)
-        .output_type(katex::OutputType::Html)
+        .output_type(katex::OutputType::HtmlAndMathml)
         .macros(macros)
         .build()
         .unwrap();

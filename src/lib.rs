@@ -220,14 +220,14 @@ fn build_opts(
     // inline rendering options
     let inline_opts = configure_katex_opts()
         .display_mode(false)
-        .output_type(katex::OutputType::Html)
+        .output_type(katex::OutputType::HtmlAndMathml)
         .macros(macros.clone())
         .build()
         .unwrap();
     // display rendering options
     let display_opts = configure_katex_opts()
         .display_mode(true)
-        .output_type(katex::OutputType::Html)
+        .output_type(katex::OutputType::HtmlAndMathml)
         .macros(macros)
         .build()
         .unwrap();
