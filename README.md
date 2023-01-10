@@ -48,6 +48,7 @@ to configure its behaviour. These options are specified under the
 The currently supported arguments are:
 | Argument | Type |
 | :- | :- |
+| [`output`](https://katex.org/docs/options.html#:~:text=default-,output,-string) | `string` |
 | [`leqno`](https://katex.org/docs/options.html#:~:text=default-,leqno,-boolean) | `boolean` |
 | [`fleqn`](https://katex.org/docs/options.html#:~:text=LaTeX-,fleqn,-boolean) | `boolean` |
 | [`throw-on-error`](https://katex.org/docs/options.html#:~:text=package-,throwonerror,-boolean) | `boolean` |

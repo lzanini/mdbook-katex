@@ -54,6 +54,7 @@ impl Delimiter {
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
     // options for the katex-rust crate
+    pub output: String,
     pub leqno: bool,
     pub fleqn: bool,
     pub throw_on_error: bool,
@@ -75,6 +76,7 @@ impl Default for KatexConfig {
         KatexConfig {
             // default options for the katex-rust crate
             // uses defaults specified in: https://katex.org/docs/options.html
+            output: "html".into(),
             leqno: false,
             fleqn: false,
             throw_on_error: true,
@@ -90,6 +92,65 @@ impl Default for KatexConfig {
             block_delimiter: Delimiter::same("$$".into()),
             inline_delimiter: Delimiter::same("$".into()),
         }
+    }
+}
+
+impl KatexConfig {
+    pub fn output_type(&self) -> katex::OutputType {
+        match self.output.as_str() {
+            "html" => katex::OutputType::Html,
+            "mathml" => katex::OutputType::Mathml,
+            "htmlAndMathml" => katex::OutputType::HtmlAndMathml,
+            other => {
+                eprintln!(
+"[preprocessor.katex]: `{other}` is not a valid choice for `output`! Please check your `book.toml`.
+Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMathml`."
+                );
+                katex::OutputType::Html
+            }
+        }
+    }
+
+    pub fn build_opts<P>(&self, root: P) -> (katex::Opts, katex::Opts, ExtraOpts)
+    where
+        P: AsRef<Path>,
+    {
+        // load macros as a HashMap
+        let macros = load_macros(root, &self.macros);
+
+        self.build_opts_from_macros(macros)
+    }
+
+    pub fn build_opts_from_macros(
+        &self,
+        macros: HashMap<String, String>,
+    ) -> (katex::Opts, katex::Opts, ExtraOpts) {
+        let mut configure_katex_opts = katex::Opts::builder();
+        configure_katex_opts
+            .output_type(self.output_type())
+            .leqno(self.leqno)
+            .fleqn(self.fleqn)
+            .throw_on_error(self.throw_on_error)
+            .error_color(self.error_color.clone())
+            .macros(macros)
+            .min_rule_thickness(self.min_rule_thickness)
+            .max_size(self.max_size)
+            .max_expand(self.max_expand)
+            .trust(self.trust);
+        // inline rendering options
+        let inline_opts = configure_katex_opts
+            .clone()
+            .display_mode(false)
+            .build()
+            .unwrap();
+        // display rendering options
+        let display_opts = configure_katex_opts.display_mode(true).build().unwrap();
+        let extra_opts = ExtraOpts {
+            include_src: self.include_src,
+            block_delimiter: self.block_delimiter.clone(),
+            inline_delimiter: self.inline_delimiter.clone(),
+        };
+        (inline_opts, display_opts, extra_opts)
     }
 }
 
@@ -143,7 +204,7 @@ impl Preprocessor for KatexProcessor {
         enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts, extra_opts) = build_opts(ctx, &cfg);
+        let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
             katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
@@ -199,50 +260,13 @@ impl Preprocessor for KatexProcessor {
     }
 }
 
-fn build_opts(
-    ctx: &PreprocessorContext,
-    cfg: &KatexConfig,
-) -> (katex::Opts, katex::Opts, ExtraOpts) {
-    let configure_katex_opts = || -> katex::OptsBuilder {
-        katex::Opts::builder()
-            .leqno(cfg.leqno)
-            .fleqn(cfg.fleqn)
-            .throw_on_error(cfg.throw_on_error)
-            .error_color(cfg.error_color.clone())
-            .min_rule_thickness(cfg.min_rule_thickness)
-            .max_size(cfg.max_size)
-            .max_expand(cfg.max_expand)
-            .trust(cfg.trust)
-            .clone()
-    };
-    // load macros as a HashMap
-    let macros = load_macros(ctx, &cfg.macros);
-    // inline rendering options
-    let inline_opts = configure_katex_opts()
-        .display_mode(false)
-        .output_type(katex::OutputType::Html)
-        .macros(macros.clone())
-        .build()
-        .unwrap();
-    // display rendering options
-    let display_opts = configure_katex_opts()
-        .display_mode(true)
-        .output_type(katex::OutputType::Html)
-        .macros(macros)
-        .build()
-        .unwrap();
-    let extra_opts = ExtraOpts {
-        include_src: cfg.include_src,
-        block_delimiter: cfg.block_delimiter.clone(),
-        inline_delimiter: cfg.inline_delimiter.clone(),
-    };
-    (inline_opts, display_opts, extra_opts)
-}
-
-fn load_macros(ctx: &PreprocessorContext, macros_path: &Option<String>) -> HashMap<String, String> {
+fn load_macros<P>(root: P, macros_path: &Option<String>) -> HashMap<String, String>
+where
+    P: AsRef<Path>,
+{
     // load macros as a HashMap
     let mut map = HashMap::new();
-    if let Some(path) = get_macro_path(&ctx.root, macros_path) {
+    if let Some(path) = get_macro_path(root, macros_path) {
         let macro_str = load_as_string(&path);
         for couple in macro_str.split('\n') {
             // only consider lines starting with a backslash
@@ -483,10 +507,13 @@ pub async fn render(item: String, opts: Opts, extra_opts: ExtraOpts) -> String {
     rendered_content
 }
 
-pub fn get_macro_path(root: &Path, macros_path: &Option<String>) -> Option<PathBuf> {
+pub fn get_macro_path<P>(root: P, macros_path: &Option<String>) -> Option<PathBuf>
+where
+    P: AsRef<Path>,
+{
     macros_path
         .as_ref()
-        .map(|path| root.join(PathBuf::from(path)))
+        .map(|path| root.as_ref().join(PathBuf::from(path)))
 }
 
 pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
