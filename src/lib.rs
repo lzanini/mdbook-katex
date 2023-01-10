@@ -54,6 +54,7 @@ impl Delimiter {
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
     // options for the katex-rust crate
+    pub output_type: String,
     pub leqno: bool,
     pub fleqn: bool,
     pub throw_on_error: bool,
@@ -75,6 +76,7 @@ impl Default for KatexConfig {
         KatexConfig {
             // default options for the katex-rust crate
             // uses defaults specified in: https://katex.org/docs/options.html
+            output_type: "Html".into(),
             leqno: false,
             fleqn: false,
             throw_on_error: true,
@@ -89,6 +91,23 @@ impl Default for KatexConfig {
             macros: None,
             block_delimiter: Delimiter::same("$$".into()),
             inline_delimiter: Delimiter::same("$".into()),
+        }
+    }
+}
+
+impl KatexConfig {
+    pub fn output_type(&self) -> katex::OutputType {
+        match self.output_type.as_str() {
+            "Html" => katex::OutputType::Html,
+            "Mathml" => katex::OutputType::Mathml,
+            "HtmlAndMathml" => katex::OutputType::HtmlAndMathml,
+            other => {
+                eprintln!(
+"mdbook-katex: `{other}` is not a valid `output-type`! Please check your `book.toml`.
+Defaulting to `Html`. Other valid output types are `Mathml` and `HtmlAndMathml`."
+                );
+                katex::OutputType::Html
+            }
         }
     }
 }
@@ -203,34 +222,32 @@ fn build_opts(
     ctx: &PreprocessorContext,
     cfg: &KatexConfig,
 ) -> (katex::Opts, katex::Opts, ExtraOpts) {
-    let configure_katex_opts = || -> katex::OptsBuilder {
-        katex::Opts::builder()
-            .leqno(cfg.leqno)
-            .fleqn(cfg.fleqn)
-            .throw_on_error(cfg.throw_on_error)
-            .error_color(cfg.error_color.clone())
-            .min_rule_thickness(cfg.min_rule_thickness)
-            .max_size(cfg.max_size)
-            .max_expand(cfg.max_expand)
-            .trust(cfg.trust)
-            .clone()
-    };
+    let output_type = cfg.output_type();
+
     // load macros as a HashMap
     let macros = load_macros(ctx, &cfg.macros);
+
+    let mut configure_katex_opts = katex::Opts::builder();
+    configure_katex_opts
+        .output_type(output_type)
+        .leqno(cfg.leqno)
+        .fleqn(cfg.fleqn)
+        .throw_on_error(cfg.throw_on_error)
+        .error_color(cfg.error_color.clone())
+        .macros(macros)
+        .min_rule_thickness(cfg.min_rule_thickness)
+        .max_size(cfg.max_size)
+        .max_expand(cfg.max_expand)
+        .trust(cfg.trust);
+
     // inline rendering options
-    let inline_opts = configure_katex_opts()
+    let inline_opts = configure_katex_opts
+        .clone()
         .display_mode(false)
-        .output_type(katex::OutputType::Html)
-        .macros(macros.clone())
         .build()
         .unwrap();
     // display rendering options
-    let display_opts = configure_katex_opts()
-        .display_mode(true)
-        .output_type(katex::OutputType::Html)
-        .macros(macros)
-        .build()
-        .unwrap();
+    let display_opts = configure_katex_opts.display_mode(true).build().unwrap();
     let extra_opts = ExtraOpts {
         include_src: cfg.include_src,
         block_delimiter: cfg.block_delimiter.clone(),
