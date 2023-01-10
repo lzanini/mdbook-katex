@@ -54,7 +54,7 @@ impl Delimiter {
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
     // options for the katex-rust crate
-    pub output_type: String,
+    pub output: String,
     pub leqno: bool,
     pub fleqn: bool,
     pub throw_on_error: bool,
@@ -76,7 +76,7 @@ impl Default for KatexConfig {
         KatexConfig {
             // default options for the katex-rust crate
             // uses defaults specified in: https://katex.org/docs/options.html
-            output_type: "Html".into(),
+            output: "html".into(),
             leqno: false,
             fleqn: false,
             throw_on_error: true,
@@ -97,14 +97,14 @@ impl Default for KatexConfig {
 
 impl KatexConfig {
     pub fn output_type(&self) -> katex::OutputType {
-        match self.output_type.as_str() {
-            "Html" => katex::OutputType::Html,
-            "Mathml" => katex::OutputType::Mathml,
-            "HtmlAndMathml" => katex::OutputType::HtmlAndMathml,
+        match self.output.as_str() {
+            "html" => katex::OutputType::Html,
+            "mathml" => katex::OutputType::Mathml,
+            "htmlAndMathml" => katex::OutputType::HtmlAndMathml,
             other => {
                 eprintln!(
-"mdbook-katex: `{other}` is not a valid `output-type`! Please check your `book.toml`.
-Defaulting to `Html`. Other valid output types are `Mathml` and `HtmlAndMathml`."
+"[preprocessor.katex]: `{other}` is not a valid choice for `output`! Please check your `book.toml`.
+Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMathml`."
                 );
                 katex::OutputType::Html
             }
