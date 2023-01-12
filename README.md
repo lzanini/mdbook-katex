@@ -19,6 +19,8 @@ Then, add the following lines to your `book.toml` file
 ```toml
 [output.katex]
 
+[output.html]
+
 [preprocessor.katex]
 renderers = ["html"]
 ```
