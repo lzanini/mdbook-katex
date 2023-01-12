@@ -22,10 +22,10 @@ toml = "0.5"
 regex = "1.7"
 tokio = { version = "1.24", features = ["rt-multi-thread"] }
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(any(target_os = "macos", all(unix, target_platform = "x86_64")))'.dependencies]
 katex = "0.4.5"
 
-[target.'cfg(windows)'.dependencies]
+[target.'cfg(not(any(target_os = "macos", all(unix, target_platform = "x86_64"))))'.dependencies]
 katex = { version = "0.4.5", default-features = false, features = ["duktape"] }
 
 [profile.release]
