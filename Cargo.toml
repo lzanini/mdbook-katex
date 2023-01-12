@@ -22,6 +22,7 @@ toml = "0.5"
 regex = "1.7"
 tokio = { version = "1.24", features = ["rt-multi-thread"] }
 
+# Remember to modify the tests accordingly if you modify this.
 [target.'cfg(any(target_os = "macos", all(unix, target_platform = "x86_64")))'.dependencies]
 katex = "0.4.5"
 
