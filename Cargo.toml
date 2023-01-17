@@ -23,10 +23,10 @@ regex = "1.7"
 tokio = { version = "1.24", features = ["rt-multi-thread"] }
 
 # Remember to modify the tests accordingly if you modify this.
-[target.'cfg(any(target_os = "macos", all(unix, target_platform = "x86_64")))'.dependencies]
+[target.'cfg(any(target_os = "macos", all(unix, target_arch = "x86_64")))'.dependencies]
 katex = "0.4.5"
 
-[target.'cfg(not(any(target_os = "macos", all(unix, target_platform = "x86_64"))))'.dependencies]
+[target.'cfg(not(any(target_os = "macos", all(unix, target_arch = "x86_64"))))'.dependencies]
 katex = { version = "0.4.5", default-features = false, features = ["duktape"] }
 
 [profile.release]
