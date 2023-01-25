@@ -476,6 +476,8 @@ impl<'a> Scan<'a> {
                 self.index += delim.right.len();
                 self.events.push(Event::Begin(self.index));
                 break;
+            } else {
+                self.index += delim.right.len();
             }
         }
 
