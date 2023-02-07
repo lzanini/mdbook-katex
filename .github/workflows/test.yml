@@ -97,6 +97,8 @@ jobs:
           args: |
             --features native-tls-vendored
             --target x86_64-pc-windows-gnu
+            --no-run
+          # Cannot run because not on Windows.
 
   fmt-clippy:
     runs-on: ubuntu-22.04

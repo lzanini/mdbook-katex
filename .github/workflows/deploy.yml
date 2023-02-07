@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  windows-binary:
+  msvc-windows-binary:
 
     runs-on: windows-latest
 
@@ -48,6 +48,52 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
+
+  gnu-windows-binary:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install x86_64-pc-windows-gnu
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-pc-windows-gnu
+        override: true
+
+    - uses: Swatinem/rust-cache@v2
+
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: true
+        command: build
+        args: |
+          --release
+          --features native-tls-vendored
+          --target x86_64-pc-windows-gnu
+
+    - name: Get the version
+      id: tagName
+      run: |
+        VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+        echo "::set-output name=version::$VERSION"
+
+    - name: Create tar
+      run: |
+        mv target/x86_64-pc-windows-gnu/release/mdbook-katex mdbook-katex
+        TAR_FILE=mdbook-katex-v${{ steps.tagName.outputs.version }}
+        tar -czvf $TAR_FILE-x86_64-pc-windows-gnu.tar.gz \
+                  mdbook-katex
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v2
+      with:
+        path: |
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.tar.gz
+
   gnu-linux-binary:
 
     runs-on: ubuntu-22.04
@@ -132,7 +178,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         path: |
-          Cargo.lock
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
 
   x86_64-macos-binary:
@@ -216,7 +261,7 @@ jobs:
 
   deploy:
 
-    needs: [windows-binary, gnu-linux-binary, musl-linux-binary, x86_64-macos-binary, aarch64-macos-binary]
+    needs: [msvc-windows-binary, gnu-windows-binary, gnu-linux-binary, musl-linux-binary, x86_64-macos-binary, aarch64-macos-binary]
 
     runs-on: ubuntu-22.04
 
