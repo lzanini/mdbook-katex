@@ -31,3 +31,6 @@ katex = { version = "0.4.6", default-features = false, features = ["duktape"] }
 
 [profile.release]
 lto = true
+
+[features]
+native-tls-vendored = ["reqwest/native-tls-vendored"]
