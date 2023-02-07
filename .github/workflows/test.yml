@@ -77,6 +77,29 @@ jobs:
 
       - run: cargo test
 
+  test-windows-from-ubuntu:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          override: true
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: |
+            --features native-tls-vendored
+            --target x86_64-pc-windows-gnu
+            --no-run
+          # Cannot run because not on Windows.
+
   fmt-clippy:
     runs-on: ubuntu-22.04
     steps:

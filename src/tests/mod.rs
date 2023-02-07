@@ -240,5 +240,9 @@ fn test_inline_rendering_w_custom_delimiter() {
     debug_assert_eq!(expected_output, rendered_content[0]);
 }
 
-#[cfg(any(target_os = "macos", all(unix, target_arch = "x86_64")))]
+#[cfg(any(
+    target_os = "macos",
+    all(unix, target_arch = "x86_64"),
+    all(windows, target_env = "gnu")
+))]
 mod not_duktape;
