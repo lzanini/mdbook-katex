@@ -216,7 +216,7 @@ jobs:
 
   deploy:
 
-    needs: [windows-binary, gnu-linux-binary, x86_64-macos-binary, aarch64-macos-binary]
+    needs: [windows-binary, gnu-linux-binary, musl-linux-binary, x86_64-macos-binary, aarch64-macos-binary]
 
     runs-on: ubuntu-22.04
 
