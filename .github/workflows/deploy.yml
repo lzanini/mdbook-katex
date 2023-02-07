@@ -99,16 +99,29 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install stable
+    - name: Install stable-aarch64-apple-darwin
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
+        target: x86_64-apple-darwin
+        override: true
+
+    - name: Install stable-aarch64-apple-darwin
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: aarch64-apple-darwin
         override: true
 
     - uses: Swatinem/rust-cache@v2
 
-    - name: Build mdbook-katex
+    - name: Build mdbook-katex for x86_64-apple-darwin
+      run: |
+        cargo build --release
+
+    - name: Cross build mdbook-katex for aarch64-apple-darwin
       run: |
         cargo build --release
 
@@ -118,17 +131,25 @@ jobs:
         VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
         echo "::set-output name=version::$VERSION"
 
-    - name: Create tar
+    - name: Create tar for x86_64-apple-darwin
       run: |
         mv target/release/mdbook-katex mdbook-katex
         TAR_PREFIX=mdbook-katex-v${{ steps.tagName.outputs.version }}
         tar -czvf $TAR_PREFIX-x86_64-apple-darwin.tar.gz \
                   mdbook-katex
 
+    - name: Create tar for aarch64-apple-darwin
+      run: |
+        mv -f target/aarch64-apple-darwin/release/mdbook-katex mdbook-katex
+        TAR_PREFIX=mdbook-katex-v${{ steps.tagName.outputs.version }}
+        tar -czvf $TAR_PREFIX-aarch64-apple-darwin.tar.gz \
+                  mdbook-katex
+
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
         path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-aarch64-apple-darwin.tar.gz
 
   deploy:
 
@@ -163,6 +184,7 @@ jobs:
         name: v${{ steps.tagName.outputs.version }}
         files: |
           Cargo.lock
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-aarch64-apple-darwin.tar.gz
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
           mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
