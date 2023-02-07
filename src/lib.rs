@@ -530,13 +530,13 @@ pub fn load_as_string(path: &Path) -> String {
     let display = path.display();
 
     let mut file = match File::open(path) {
-        Err(why) => panic!("couldn't open {}: {}", display, why),
+        Err(why) => panic!("couldn't open {display}: {why}"),
         Ok(file) => file,
     };
 
     let mut string = String::new();
     if let Err(why) = file.read_to_string(&mut string) {
-        panic!("couldn't read {}: {}", display, why)
+        panic!("couldn't read {display}: {why}")
     };
     string
 }
@@ -549,7 +549,7 @@ async fn katex_header(
 ) -> Result<(String, Option<SideEffectHandle>), Error> {
     // constants
     let cdn_root = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/";
-    let stylesheet_url = format!("{}katex.min.css", cdn_root);
+    let stylesheet_url = format!("{cdn_root}katex.min.css");
     let integrity = "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X";
 
     if cfg.static_css {
@@ -564,9 +564,7 @@ async fn katex_header(
         ))
     } else {
         Ok((format!(
-                "<link rel=\"stylesheet\" href=\"{}\" integrity=\"{}\" crossorigin=\"anonymous\">\n\n",
-                stylesheet_url,
-                integrity,
+                "<link rel=\"stylesheet\" href=\"{stylesheet_url}\" integrity=\"{integrity}\" crossorigin=\"anonymous\">\n\n",
             ), None))
     }
 }
