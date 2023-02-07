@@ -92,14 +92,14 @@ jobs:
 
   # TODO: musl-linux-binary
 
-  macos-binary:
+  x86_64-macos-binary:
 
     runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install stable-aarch64-apple-darwin
+    - name: Install stable-x86_64-apple-darwin
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
@@ -107,23 +107,11 @@ jobs:
         target: x86_64-apple-darwin
         override: true
 
-    - name: Install stable-aarch64-apple-darwin
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        target: aarch64-apple-darwin
-        override: true
-
     - uses: Swatinem/rust-cache@v2
 
     - name: Build mdbook-katex for x86_64-apple-darwin
       run: |
         cargo build --release
-
-    - name: Cross build mdbook-katex for aarch64-apple-darwin
-      run: |
-        cargo build --release --target=aarch64-apple-darwin
 
     - name: Get the version
       id: tagName
@@ -138,6 +126,38 @@ jobs:
         tar -czvf $TAR_PREFIX-x86_64-apple-darwin.tar.gz \
                   mdbook-katex
 
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v2
+      with:
+        path: |
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+  aarch64-macos-binary:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install stable-aarch64-apple-darwin
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: aarch64-apple-darwin
+        override: true
+
+    - uses: Swatinem/rust-cache@v2
+
+    - name: Cross build mdbook-katex for aarch64-apple-darwin
+      run: |
+        cargo build --release --target=aarch64-apple-darwin
+
+    - name: Get the version
+      id: tagName
+      run: |
+        VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+        echo "::set-output name=version::$VERSION"
+
     - name: Create tar for aarch64-apple-darwin
       run: |
         mv -f target/aarch64-apple-darwin/release/mdbook-katex mdbook-katex
@@ -149,12 +169,11 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         path: |
-          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
           mdbook-katex-v${{ steps.tagName.outputs.version }}-aarch64-apple-darwin.tar.gz
 
   deploy:
 
-    needs: [windows-binary, gnu-linux-binary, macos-binary]
+    needs: [windows-binary, gnu-linux-binary, x86_64-macos-binary, aarch64-macos-binary]
 
     runs-on: ubuntu-22.04
 
