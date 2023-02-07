@@ -12,22 +12,22 @@ readme = "README.md"
 repository = "https://github.com/lzanini/mdbook-katex"
 
 [dependencies]
-clap = { version = "4.0", features = ["cargo"] }
+clap = { version = "4.1", features = ["cargo"] }
 mdbook = "0.4.25"
 reqwest = "0.11"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-toml = "0.6"
+toml = "0.7"
 regex = "1.7"
-tokio = { version = "1.24", features = ["rt-multi-thread"] }
+tokio = { version = "1.25", features = ["rt-multi-thread"] }
 
 # Remember to modify the tests accordingly if you modify this.
 [target.'cfg(any(target_os = "macos", all(unix, target_arch = "x86_64")))'.dependencies]
-katex = "0.4.5"
+katex = "0.4.6"
 
 [target.'cfg(not(any(target_os = "macos", all(unix, target_arch = "x86_64"))))'.dependencies]
-katex = { version = "0.4.5", default-features = false, features = ["duktape"] }
+katex = { version = "0.4.6", default-features = false, features = ["duktape"] }
 
 [profile.release]
 lto = true
