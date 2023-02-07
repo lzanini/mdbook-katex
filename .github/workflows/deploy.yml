@@ -123,7 +123,7 @@ jobs:
 
     - name: Cross build mdbook-katex for aarch64-apple-darwin
       run: |
-        cargo build --release
+        cargo build --release --target=aarch64-apple-darwin
 
     - name: Get the version
       id: tagName
