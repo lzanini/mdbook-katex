@@ -83,16 +83,16 @@ jobs:
 
     - name: Create tar
       run: |
-        mv target/x86_64-pc-windows-gnu/release/mdbook-katex mdbook-katex
+        mv target/x86_64-pc-windows-gnu/release/mdbook-katex.exe mdbook-katex.exe
         TAR_FILE=mdbook-katex-v${{ steps.tagName.outputs.version }}
-        tar -czvf $TAR_FILE-x86_64-pc-windows-gnu.tar.gz \
-                  mdbook-katex
+        zip $TAR_FILE-x86_64-pc-windows-gnu.zip \
+                  mdbook-katex.exe
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
         path: |
-          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.zip
 
   gnu-linux-binary:
 
