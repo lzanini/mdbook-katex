@@ -148,8 +148,9 @@ jobs:
     - name: Upload binary artifact
       uses: actions/upload-artifact@v2
       with:
-        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
-        path: mdbook-katex-v${{ steps.tagName.outputs.version }}-aarch64-apple-darwin.tar.gz
+        path: |
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
+          mdbook-katex-v${{ steps.tagName.outputs.version }}-aarch64-apple-darwin.tar.gz
 
   deploy:
 
