@@ -1,6 +1,6 @@
 [package]
 name = "mdbook-katex"
-version = "0.3.8"
+version = "0.3.9"
 authors = [
     "Lucas Zanini <zanini.lcs@gmail.com>",
     "Steven Hé (Sīchàng) <stevensichanghe@gmail.com>",
