@@ -1,6 +1,6 @@
-`mdbook-katex` is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTex equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
+`mdbook-katex` is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTeX equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
 
-This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTex functions.
+This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTeX functions.
 
 <p align="center">
   <img width="75%" height="75%" src="https://user-images.githubusercontent.com/71221149/107123378-84acbf80-689d-11eb-811d-26f20e32556c.gif">
@@ -10,9 +10,14 @@ This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 First, install `mdbook-katex`
 
-```shell
-cargo install mdbook-katex
-```
+- Non-Windows users:
+
+    ```shell
+    cargo install mdbook-katex
+    ```
+
+- Windows users:
+    The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality. See #67 for the reasons.
 
 Then, add the following lines to your `book.toml` file
 
