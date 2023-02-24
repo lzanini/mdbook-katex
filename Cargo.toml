@@ -13,7 +13,7 @@ repository = "https://github.com/lzanini/mdbook-katex"
 
 [dependencies]
 clap = { version = "4.1", features = ["cargo"] }
-mdbook = "0.4.26"
+mdbook = "0.4.27"
 reqwest = "0.11"
 serde = "1.0"
 serde_derive = "1.0"
