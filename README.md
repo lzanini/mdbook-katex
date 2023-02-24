@@ -17,7 +17,7 @@ First, install `mdbook-katex`
     ```
 
 - Windows users:
-    The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality. See #67 for the reasons.
+    The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
 
 Then, add the following lines to your `book.toml` file
 
@@ -44,9 +44,9 @@ $$ \nabla f(x) \in \mathbb{R}^n, $$
 and a regular \$ symbol.
 ```
 
-LaTex equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
+LaTeX equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
-## Katex options
+## KaTeX options
 
 The preprocessor supports passing options to the katex-rs crate in order
 to configure its behaviour. These options are specified under the
@@ -87,7 +87,7 @@ inline-delimiter = {left = "$", right = "$"}
 
 ## Custom macros
 
-Custom LaTex macros must be defined in a `.txt` file, according to the following pattern
+Custom LaTeX macros must be defined in a `.txt` file, according to the following pattern
 
 ```txt
 \grad:{\nabla}
@@ -162,3 +162,5 @@ The build artifact of the book will be in a folder named `html` inside the direc
 Consider this when you use `mdbook_katex` in your CIs.
 
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
+
+Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality, all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
