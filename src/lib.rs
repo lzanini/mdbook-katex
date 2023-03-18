@@ -65,6 +65,7 @@ pub struct KatexConfig {
     pub trust: bool,
     // other options
     pub static_css: bool,
+    pub no_css: bool,
     pub include_src: bool,
     pub macros: Option<String>,
     pub block_delimiter: Delimiter,
@@ -87,6 +88,7 @@ impl Default for KatexConfig {
             trust: false,
             // other options
             static_css: false,
+            no_css: false,
             include_src: false,
             macros: None,
             block_delimiter: Delimiter::same("$$".into()),
@@ -212,7 +214,7 @@ impl Preprocessor for KatexProcessor {
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if let Some(ref path) = chapter.path {
-                    if cfg.static_css {
+                    if !cfg.no_css && cfg.static_css {
                         paths_w_raw_contents.push((Some(path.clone()), chapter.content.clone()))
                     } else {
                         paths_w_raw_contents.push((None, chapter.content.clone()));
@@ -222,7 +224,9 @@ impl Preprocessor for KatexProcessor {
         });
         let mut tasks = Vec::with_capacity(paths_w_raw_contents.len());
         for (path, content) in paths_w_raw_contents {
-            let header = if cfg.static_css {
+            let header = if cfg.no_css {
+                "".into()
+            } else if cfg.static_css {
                 format!(
                     "<link rel=\"stylesheet\" href=\"{}katex/katex.min.css\">\n\n",
                     path_to_root(path.unwrap()), // must be `Some` since `static_css`
