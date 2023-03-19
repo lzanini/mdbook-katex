@@ -162,7 +162,6 @@ For example, to use `\(`and `\)` for inline math and `\[` and `\]` for math bloc
 
 ```toml
 [preprocessor.katex]
-renderers = ["html"]
 block-delimiter = {left = "\\[", right = "\\]"}
 inline-delimiter = {left = "\\(", right = "\\)"}
 ```
@@ -171,9 +170,9 @@ Notice that the double backslash above are just used to escape `\` in the TOML f
 
 ## Caveats
 
-The build artifact of the book will be in a folder named `html` inside the directory you specify instead of being directly there.
-Consider this when you use `mdbook_katex` in your CIs.
-
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
 
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality, all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
+
+If you specify `[output.katex]`, the build artifact of the book will be in a folder named `html` inside the directory you specify instead of being directly there.
+Consider this when you use `mdbook-katex` in your CIs.
