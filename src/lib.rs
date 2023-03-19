@@ -14,7 +14,7 @@ use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use mdbook::renderer::{RenderContext, Renderer};
+
 use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
@@ -180,18 +180,6 @@ fn enforce_config(cfg: &mdbook::Config) {
 }
 
 pub struct KatexProcessor;
-
-// dummy renderer to ensure rendered output is always located
-// in the `book/html/` directory
-impl Renderer for KatexProcessor {
-    fn name(&self) -> &str {
-        "katex"
-    }
-
-    fn render(&self, _ctx: &RenderContext) -> Result<()> {
-        Ok(())
-    }
-}
 
 // preprocessor to inject rendered katex blocks and stylesheet
 impl Preprocessor for KatexProcessor {
