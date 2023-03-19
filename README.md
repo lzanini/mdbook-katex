@@ -19,20 +19,15 @@ First, install `mdbook-katex`
 - Windows users:
     The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
 
-Then, add the following lines to your `book.toml` file
+Then, add the following line to your `book.toml` file
 
 ```toml
-[output.katex]
-
-[output.html]
-
 [preprocessor.katex]
-renderers = ["html"]
 ```
 
 You can now use `$` and `$$` delimiters for inline and display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backslash `\$`.
 
-```
+```markdown
 # Chapter 1
 
 Here is an inline example, $ \pi(\theta) $, 
@@ -68,22 +63,40 @@ The currently supported arguments are:
 There are also options to configure the behaviour of the preprocessor:
 | Option | Default | Description |
 | :- | :- | :- |
-| `static-css` | `false` | Generates fully static html pages with katex styling |
+| `no-css` | `false` | Do not inject KaTeX stylesheet link (See [Self-host KaTeX CSS and fonts](#self-host-katex-css-and-fonts)) |
 | `macros` | `None` | Path to macros file (see [Custom macros](#custom-macros)) |
 | `include-src` | `false` | Include math expressions source code (See [Including math Source](#including-math-source)) |
 | `block-delimiter` | `{left = "$$", right = "$$"}` | See [Custom delimiter](#custom-delimiter) |
 | `inline-delimiter` | `{left = "$", right = "$"}` | See [Custom delimiter](#custom-delimiter) |
+| `static-css` | `false` | ([Deprecated](https://github.com/lzanini/mdbook-katex/issues/68)) Generates fully static html pages with katex styling |
 
 For example:
 
 ```toml
 [preprocessor.katex]
 renderers = ["html"]
-static-css = false
+no-css = false
 include-src = false
 block-delimiter = {left = "$$", right = "$$"}
 inline-delimiter = {left = "$", right = "$"}
 ```
+
+## Self-host KaTeX CSS and fonts
+
+KaTeX requires a stylesheet and fonts to render correctly.
+
+By default, `mdbook-katex` inject a KaTeX stylesheet link pointing to a CDN.
+
+If you want to self-host the CSS and fonts instead, you should specify in `book.toml`:
+
+```toml
+[preprocessor.katex]
+no-css = true
+```
+
+and manually add the CSS and fonts to your mdBook project before build.
+
+See [`mdbook-katex` Static CSS Example](https://github.com/SichangHe/mdbook_katex_static_css) for an automated example.
 
 ## Custom macros
 

@@ -14,7 +14,7 @@ use mdbook::book::{Book, BookItem};
 use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use mdbook::renderer::{RenderContext, Renderer};
+
 use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
@@ -181,19 +181,6 @@ fn enforce_config(cfg: &mdbook::Config) {
 
 pub struct KatexProcessor;
 
-// dummy renderer to ensure rendered output is always located
-// in the `book/html/` directory
-impl Renderer for KatexProcessor {
-    fn name(&self) -> &str {
-        "katex"
-    }
-
-    fn render(&self, ctx: &RenderContext) -> Result<()> {
-        enforce_config(&ctx.config);
-        Ok(())
-    }
-}
-
 // preprocessor to inject rendered katex blocks and stylesheet
 impl Preprocessor for KatexProcessor {
     fn name(&self) -> &str {
@@ -202,10 +189,12 @@ impl Preprocessor for KatexProcessor {
 
     #[tokio::main]
     async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
-        // enforce config requirements
-        enforce_config(&ctx.config);
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
+        if cfg.static_css {
+            // enforce config requirements
+            enforce_config(&ctx.config);
+        }
         let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
         // get stylesheet header
         let (stylesheet_header, maybe_download_task) =
