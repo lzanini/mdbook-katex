@@ -57,7 +57,6 @@ fn handle_preprocessing(
 }
 
 fn handle_rendering(ctx: &RenderContext, rend: &dyn Renderer) -> Result<(), Error> {
-    check_mdbook_version(&ctx.version);
     rend.render(ctx)
 }
 
