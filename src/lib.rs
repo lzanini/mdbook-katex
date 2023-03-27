@@ -546,6 +546,11 @@ async fn katex_header(
     let integrity = "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X";
 
     if cfg.static_css {
+        eprintln!(
+            "
+[WARNNING] mdbook-katex: `static-css` in `book.toml` is deprecated and will be removed in v0.4.0.
+Please use `no-css` instead. See https://github.com/lzanini/mdbook-katex/issues/68"
+        );
         Ok((
             "".to_owned(), // not used
             Some(spawn(download_static_css(
