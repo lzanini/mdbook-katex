@@ -75,9 +75,11 @@ fn main() -> Result<(), Error> {
     }
     // Fake rendering to support `[output.katex]`.
     else if RenderContext::from_json(book_data.as_bytes()).is_ok() {
-        eprintln!("
+        eprintln!(
+            "
 [WARNNING] mdbook-katex: `[output.katex]` is deprecated and will be removed in v0.5.0.
-Please remove it from `book.toml`. See https://github.com/lzanini/mdbook-katex/issues/68");
+Please remove it from `book.toml`. See https://github.com/lzanini/mdbook-katex/issues/68"
+        );
         return Ok(());
     }
 
