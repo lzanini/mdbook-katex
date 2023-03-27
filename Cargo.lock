@@ -1062,7 +1062,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-katex"
-version = "0.3.11"
+version = "0.3.12"
 dependencies = [
  "clap",
  "katex",
