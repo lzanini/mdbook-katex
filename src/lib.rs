@@ -487,7 +487,7 @@ pub async fn render(item: String, opts: Opts, extra_opts: ExtraOpts) -> String {
         if extra_opts.include_src {
             // Wrap around with `data.katex-src` tag.
             rendered_content.push_str(r#"<data class="katex-src" value=""#);
-            rendered_content.push_str(&item.replace('"', r#"\""#));
+            rendered_content.push_str(&item.replace('"', r#"\""#).replace('\n', r"&#10;"));
             rendered_content.push_str(r#"">"#);
             rendered_content.push_str(&rendered);
             rendered_content.push_str(r"</data>");
