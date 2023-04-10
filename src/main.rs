@@ -6,6 +6,7 @@ use mdbook::renderer::RenderContext;
 use mdbook_katex::KatexProcessor;
 use std::io::{self, Read};
 
+/// Parse CLI options.
 pub fn make_app() -> Command {
     Command::new("mdbook-katex")
         .version(crate_version!())
@@ -17,6 +18,7 @@ pub fn make_app() -> Command {
         )
 }
 
+/// Produce a warning on mdBook version mismatch.
 fn check_mdbook_version(version: &String) {
     if version != mdbook::MDBOOK_VERSION {
         eprintln!(
@@ -29,6 +31,7 @@ fn check_mdbook_version(version: &String) {
     }
 }
 
+/// Tell mdBook if we support what it asks for.
 fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), Error> {
     let renderer = sub_args
         .get_one::<String>("renderer")
@@ -44,14 +47,15 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), 
     }
 }
 
+/// Preprocess `book` using `pre` and print it out.
 fn handle_preprocessing(
     pre: &dyn Preprocessor,
     ctx: &PreprocessorContext,
-    book: &Book,
+    book: Book,
 ) -> Result<(), Error> {
     check_mdbook_version(&ctx.mdbook_version);
 
-    let processed_book = pre.run(ctx, book.clone())?;
+    let processed_book = pre.run(ctx, book)?;
     serde_json::to_writer(io::stdout(), &processed_book)?;
     Ok(())
 }
@@ -71,7 +75,7 @@ fn main() -> Result<(), Error> {
         return handle_supports(&pre, sub_args);
     } else if let Ok((ctx, book)) = CmdPreprocessor::parse_input(book_data.as_bytes()) {
         // handle preprocessing
-        return handle_preprocessing(&pre, &ctx, &book);
+        return handle_preprocessing(&pre, &ctx, book);
     }
     // Fake rendering to support `[output.katex]`.
     else if RenderContext::from_json(book_data.as_bytes()).is_ok() {

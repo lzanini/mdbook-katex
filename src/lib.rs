@@ -113,6 +113,8 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
         }
     }
 
+    /// From `root`, load macros and generate configuration options
+    /// `(inline_opts, display_opts, extra_opts)`.
     pub fn build_opts<P>(&self, root: P) -> (katex::Opts, katex::Opts, ExtraOpts)
     where
         P: AsRef<Path>,
@@ -123,6 +125,7 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
         self.build_opts_from_macros(macros)
     }
 
+    /// Given `macros`, generate `(inline_opts, display_opts, extra_opts)`.
     pub fn build_opts_from_macros(
         &self,
         macros: HashMap<String, String>,
@@ -163,10 +166,10 @@ pub struct ExtraOpts {
     pub inline_delimiter: Delimiter,
 }
 
-// ensures that both the preprocessor and renderers are enabled
-// in the `book.toml`; the renderer forces mdbook to separate all
-// renderers into their respective directories, ensuring that the
-// html renderer will always be at `{out_dir}/html`
+/// ensures that both the preprocessor and renderers are enabled
+/// in the `book.toml`; the renderer forces mdbook to separate all
+/// renderers into their respective directories, ensuring that the
+/// html renderer will always be at `{out_dir}/html`
 fn enforce_config(cfg: &mdbook::Config) {
     if cfg.get("preprocessor.katex").is_none() {
         panic!("Missing `[preprocessor.katex]` directive in `book.toml`!");
@@ -253,6 +256,7 @@ impl Preprocessor for KatexProcessor {
     }
 }
 
+/// Load macros from `root`/`macros_path` into a `HashMap`.
 fn load_macros<P>(root: P, macros_path: &Option<String>) -> HashMap<String, String>
 where
     P: AsRef<Path>,
@@ -511,6 +515,7 @@ where
         .map(|path| root.as_ref().join(PathBuf::from(path)))
 }
 
+/// Extract configuration for katex preprocessor from `book_cfg`.
 pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
     let cfg = match book_cfg.get("preprocessor.katex") {
         Some(raw) => raw.clone().try_into(),
@@ -535,6 +540,9 @@ pub fn load_as_string(path: &Path) -> String {
 }
 
 type SideEffectHandle = JoinHandle<Result<(), Error>>;
+
+/// Provide the header to inject before the body of each chapter.
+/// Start downloading CSS and fonts if `static_css` is set.
 async fn katex_header(
     build_root: &Path,
     build_dir: &Path,
