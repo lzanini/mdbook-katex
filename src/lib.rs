@@ -276,8 +276,11 @@ where
     map
 }
 
+/// A render job for `process_chapter`.
 pub enum Render {
+    /// No need to render.
     Text(String),
+    /// A running render job for a math block.
     Task(JoinHandle<String>),
 }
 
@@ -338,11 +341,16 @@ async fn process_chapter(
     rendered.join("")
 }
 
+/// An event for parsing in a Markdown file.
 #[derive(Debug)]
 pub enum Event {
+    /// A beginning of text or math block.
     Begin(usize),
+    /// An end of a text block.
     TextEnd(usize),
+    /// An end of an inline math block.
     InlineEnd(usize),
+    /// An end of a display math block.
     BlockEnd(usize),
 }
 
