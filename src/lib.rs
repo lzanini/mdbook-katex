@@ -354,17 +354,20 @@ pub enum Event {
     BlockEnd(usize),
 }
 
+/// Scanner for text to identify block and inline math `Event`s.
 #[derive(Debug)]
 pub struct Scan<'a> {
     string: &'a str,
     bytes: &'a [u8],
     index: usize,
+    /// Block and inline math `Event`s.
     pub events: Vec<Event>,
     block_delimiter: &'a Delimiter,
     inline_delimiter: &'a Delimiter,
 }
 
 impl<'a> Scan<'a> {
+    /// Set up a `Scan` for `string` with given delimiters.
     pub fn new(
         string: &'a str,
         block_delimiter: &'a Delimiter,
@@ -380,18 +383,26 @@ impl<'a> Scan<'a> {
         }
     }
 
+    /// Scan, identify and store all `Event`s in `self.events`.
     pub fn run(&mut self) {
         while let Ok(()) = self.process_byte() {}
     }
 
+    /// Get byte currently pointed to. Returns `Err(())` if out of bound.
     fn get_byte(&self) -> Result<u8, ()> {
         self.bytes.get(self.index).map(|b| b.to_owned()).ok_or(())
     }
 
+    /// Increment index.
     fn inc(&mut self) {
         self.index += 1;
     }
 
+    /// Scan one byte, proceed process based on the byte.
+    /// - Start of delimiter => call `process_delimit`.
+    /// - `\` => skip one byte.
+    /// - `` ` `` => call `process_backtick`.
+    /// Return `Err(())` if no more bytes to process.
     fn process_byte(&mut self) -> Result<(), ()> {
         let byte = self.get_byte()?;
         self.inc();
@@ -415,6 +426,9 @@ impl<'a> Scan<'a> {
         Ok(())
     }
 
+    /// Fully skip a backtick-delimited code block.
+    /// Guaranteed to match the number of backticks in delimiters.
+    /// Return `Err(())` if no more bytes to process.
     fn process_backtick(&mut self) -> Result<(), ()> {
         let mut n_back_ticks = 1;
         loop {
@@ -444,6 +458,10 @@ impl<'a> Scan<'a> {
         Ok(())
     }
 
+    /// Skip a full math block.
+    /// Add `Event`s to mark the start and end of the math block and
+    /// surrounding text blocks.
+    /// Return `Err(())` if no more bytes to process.
     fn process_delimit(&mut self, inline: bool) -> Result<(), ()> {
         if self.index > 0 {
             self.events.push(Event::TextEnd(self.index));
@@ -490,6 +508,8 @@ impl<'a> Scan<'a> {
     }
 }
 
+/// Render a math block `item` into HTML following `opts`.
+/// Wrap result in `<data>` tag if `extra_opts.include_src`.
 pub async fn render(item: String, opts: Opts, extra_opts: ExtraOpts) -> String {
     let mut rendered_content = String::new();
 
