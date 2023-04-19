@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+//! Preprocess math blocks using KaTeX for mdBook.
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
@@ -19,13 +21,17 @@ use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
 
+/// A pair of strings are delimiters.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Delimiter {
+    /// Left delimiter.
     pub left: String,
+    /// Right delimiter.
     pub right: String,
 }
 
 impl Delimiter {
+    /// Same left and right `delimiter`.
     pub fn same(delimiter: String) -> Self {
         Self {
             left: delimiter.clone(),
@@ -33,10 +39,12 @@ impl Delimiter {
         }
     }
 
+    /// The first byte of the left delimiter.
     pub fn first(&self) -> u8 {
         self.left.as_bytes()[0]
     }
 
+    /// Whether `to_match` matches the left delimiter.
     pub fn match_left(&self, to_match: &[u8]) -> bool {
         if self.left.len() > to_match.len() {
             return false;
@@ -50,25 +58,42 @@ impl Delimiter {
     }
 }
 
+/// Configuration for KaTeX preprocessor,
+/// including options for `katex-rs` and feature options.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct KatexConfig {
     // options for the katex-rust crate
+    /// KaTeX output type.
     pub output: String,
+    /// Whether to have `\tags` rendered on the left instead of the right.
     pub leqno: bool,
+    /// Whether to make display math flush left.
     pub fleqn: bool,
+    /// Whether to let KaTeX throw a ParseError for invalid LaTeX.
     pub throw_on_error: bool,
+    /// Color used for invalid LaTeX.
     pub error_color: String,
+    /// Specifies a minimum thickness, in ems.
     pub min_rule_thickness: f64,
+    /// Max size for user-specified sizes.
     pub max_size: f64,
+    /// Limit the number of macro expansions to the specified number.
     pub max_expand: i32,
+    /// Whether to trust users' input.
     pub trust: bool,
     // other options
+    /// Download and build with static CSS and fonts.
     pub static_css: bool,
+    /// Do not inject KaTeX CSS headers.
     pub no_css: bool,
+    /// Include math source in rendered HTML.
     pub include_src: bool,
+    /// Path to macro file.
     pub macros: Option<String>,
+    /// Delimiter for math display block.
     pub block_delimiter: Delimiter,
+    /// Delimiter for math inline block.
     pub inline_delimiter: Delimiter,
 }
 
@@ -98,6 +123,8 @@ impl Default for KatexConfig {
 }
 
 impl KatexConfig {
+    /// Configured output type.
+    /// Defaults to `Html`, can also be `Mathml` or `HtmlAndMathml`.
     pub fn output_type(&self) -> katex::OutputType {
         match self.output.as_str() {
             "html" => katex::OutputType::Html,
@@ -159,10 +186,14 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
     }
 }
 
+/// Extra options for the KaTeX preprocessor.
 #[derive(Clone, Debug)]
 pub struct ExtraOpts {
+    /// Path to macro file.
     pub include_src: bool,
+    /// Delimiter for math display block.
     pub block_delimiter: Delimiter,
+    /// Delimiter for math inline block.
     pub inline_delimiter: Delimiter,
 }
 
@@ -182,6 +213,7 @@ fn enforce_config(cfg: &mdbook::Config) {
     }
 }
 
+/// KaTeX `mdbook::preprocess::Proprecessor` for mdBook.
 pub struct KatexProcessor;
 
 // preprocessor to inject rendered katex blocks and stylesheet
@@ -534,6 +566,7 @@ pub async fn render(item: String, opts: Opts, extra_opts: ExtraOpts) -> String {
     rendered_content
 }
 
+/// Absolute path of the macro file.
 pub fn get_macro_path<P>(root: P, macros_path: &Option<String>) -> Option<PathBuf>
 where
     P: AsRef<Path>,
@@ -552,6 +585,7 @@ pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Er
     cfg.or_else(|_| Ok(KatexConfig::default()))
 }
 
+/// Read file at `path`.
 pub fn load_as_string(path: &Path) -> String {
     let display = path.display();
 
