@@ -1,3 +1,8 @@
+# mdBook-KaTeX
+
+[![Crates.io version](https://img.shields.io/crates/v/mdbook-katex)](https://crates.io/crates/mdbook-katex)
+![Crates.io downloads](https://img.shields.io/crates/d/mdbook-katex)
+
 `mdbook-katex` is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTeX equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
 
 This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTeX functions.
