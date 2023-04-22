@@ -211,25 +211,19 @@ impl Preprocessor for KatexProcessor {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
-        let mut raw_contents = Vec::new();
+        let header = if cfg.no_css { "" } else { KATEX_HEADER }.to_owned();
+        let mut tasks = Vec::with_capacity(book.sections.len());
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if chapter.path.is_some() {
-                    raw_contents.push(chapter.content.clone());
-                }
+                tasks.push(spawn(process_chapter(
+                    chapter.content.clone(),
+                    inline_opts.clone(),
+                    display_opts.clone(),
+                    header.clone(),
+                    extra_opts.clone(),
+                )));
             }
         });
-        let mut tasks = Vec::with_capacity(raw_contents.len());
-        for content in raw_contents {
-            let header = if cfg.no_css { "" } else { KATEX_HEADER }.into();
-            tasks.push(spawn(process_chapter(
-                content,
-                inline_opts.clone(),
-                display_opts.clone(),
-                header,
-                extra_opts.clone(),
-            )));
-        }
         let mut contents = VecDeque::with_capacity(tasks.len());
         for task in tasks {
             contents.push_back(task.await.expect("A tokio task panicked."));
