@@ -3,7 +3,7 @@ use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
 use mdbook::renderer::RenderContext;
-use mdbook_katex::KatexProcessor;
+use mdbook_katex::preprocess::KatexProcessor;
 use std::io::{self, Read};
 
 /// Parse CLI options.
