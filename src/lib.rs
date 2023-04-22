@@ -1,7 +1,6 @@
 #![deny(missing_docs)]
 //! Preprocess math blocks using KaTeX for mdBook.
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
@@ -9,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
 use katex::Opts;
-use regex::Regex;
+
 use serde_derive::{Deserialize, Serialize};
 
 use mdbook::book::{Book, BookItem};
@@ -17,9 +16,13 @@ use mdbook::errors::Error;
 use mdbook::errors::Result;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 
-use mdbook::utils::fs::path_to_root;
 use tokio::spawn;
 use tokio::task::JoinHandle;
+
+/// Header that points to CDN for the KaTeX stylesheet.
+pub const KATEX_HEADER: &str = r#"<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+
+"#;
 
 /// A pair of strings are delimiters.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -83,8 +86,6 @@ pub struct KatexConfig {
     /// Whether to trust users' input.
     pub trust: bool,
     // other options
-    /// Download and build with static CSS and fonts.
-    pub static_css: bool,
     /// Do not inject KaTeX CSS headers.
     pub no_css: bool,
     /// Include math source in rendered HTML.
@@ -112,7 +113,6 @@ impl Default for KatexConfig {
             max_expand: 1000,
             trust: false,
             // other options
-            static_css: false,
             no_css: false,
             include_src: false,
             macros: None,
@@ -197,22 +197,6 @@ pub struct ExtraOpts {
     pub inline_delimiter: Delimiter,
 }
 
-/// ensures that both the preprocessor and renderers are enabled
-/// in the `book.toml`; the renderer forces mdbook to separate all
-/// renderers into their respective directories, ensuring that the
-/// html renderer will always be at `{out_dir}/html`
-fn enforce_config(cfg: &mdbook::Config) {
-    if cfg.get("preprocessor.katex").is_none() {
-        panic!("Missing `[preprocessor.katex]` directive in `book.toml`!");
-    }
-    if cfg.get("output.katex").is_none() {
-        panic!("Missing `[output.katex]` directive in `book.toml`!");
-    }
-    if cfg.get("output.html").is_none() {
-        panic!("The katex preprocessor is only compatible with the html renderer!");
-    }
-}
-
 /// KaTeX `mdbook::preprocess::Proprecessor` for mdBook.
 pub struct KatexProcessor;
 
@@ -226,46 +210,20 @@ impl Preprocessor for KatexProcessor {
     async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        if cfg.static_css {
-            // enforce config requirements
-            enforce_config(&ctx.config);
-        }
         let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
-        // get stylesheet header
-        let (stylesheet_header, maybe_download_task) =
-            katex_header(&ctx.root, &ctx.config.build.build_dir, &cfg).await?;
-        let mut paths_w_raw_contents = Vec::new();
+        let header = if cfg.no_css { "" } else { KATEX_HEADER }.to_owned();
+        let mut tasks = Vec::with_capacity(book.sections.len());
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if let Some(ref path) = chapter.path {
-                    if !cfg.no_css && cfg.static_css {
-                        paths_w_raw_contents.push((Some(path.clone()), chapter.content.clone()))
-                    } else {
-                        paths_w_raw_contents.push((None, chapter.content.clone()));
-                    }
-                }
+                tasks.push(spawn(process_chapter(
+                    chapter.content.clone(),
+                    inline_opts.clone(),
+                    display_opts.clone(),
+                    header.clone(),
+                    extra_opts.clone(),
+                )));
             }
         });
-        let mut tasks = Vec::with_capacity(paths_w_raw_contents.len());
-        for (path, content) in paths_w_raw_contents {
-            let header = if cfg.no_css {
-                "".into()
-            } else if cfg.static_css {
-                format!(
-                    "<link rel=\"stylesheet\" href=\"{}katex/katex.min.css\">\n\n",
-                    path_to_root(path.unwrap()), // must be `Some` since `static_css`
-                )
-            } else {
-                stylesheet_header.clone()
-            };
-            tasks.push(spawn(process_chapter(
-                content,
-                inline_opts.clone(),
-                display_opts.clone(),
-                header,
-                extra_opts.clone(),
-            )));
-        }
         let mut contents = VecDeque::with_capacity(tasks.len());
         for task in tasks {
             contents.push_back(task.await.expect("A tokio task panicked."));
@@ -277,9 +235,6 @@ impl Preprocessor for KatexProcessor {
                 }
             }
         });
-        if let Some(download_task) = maybe_download_task {
-            download_task.await??;
-        }
         Ok(book)
     }
 
@@ -599,124 +554,6 @@ pub fn load_as_string(path: &Path) -> String {
         panic!("couldn't read {display}: {why}")
     };
     string
-}
-
-type SideEffectHandle = JoinHandle<Result<(), Error>>;
-
-/// Provide the header to inject before the body of each chapter.
-/// Start downloading CSS and fonts if `static_css` is set.
-async fn katex_header(
-    build_root: &Path,
-    build_dir: &Path,
-    cfg: &KatexConfig,
-) -> Result<(String, Option<SideEffectHandle>), Error> {
-    // constants
-    let cdn_root = "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/";
-    let stylesheet_url = format!("{cdn_root}katex.min.css");
-    let integrity = "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X";
-
-    if cfg.static_css {
-        eprintln!(
-            "
-[WARNNING] mdbook-katex: `static-css` in `book.toml` is deprecated and will be removed in v0.4.0.
-Please use `no-css` instead. See https://github.com/lzanini/mdbook-katex/issues/68"
-        );
-        Ok((
-            "".to_owned(), // not used
-            Some(spawn(download_static_css(
-                build_root.into(),
-                build_dir.into(),
-                stylesheet_url,
-                cdn_root.into(),
-            ))),
-        ))
-    } else {
-        Ok((format!(
-                "<link rel=\"stylesheet\" href=\"{stylesheet_url}\" integrity=\"{integrity}\" crossorigin=\"anonymous\">\n\n",
-            ), None))
-    }
-}
-
-async fn download_static_css(
-    build_root: PathBuf,
-    build_dir: PathBuf,
-    stylesheet_url: String,
-    cdn_root: String,
-) -> Result<(), Error> {
-    // create katex resource directory
-    let mut katex_dir_path = build_root.join(build_dir);
-    katex_dir_path.push("html/katex");
-    if !katex_dir_path.exists() {
-        std::fs::create_dir_all(katex_dir_path.as_path())?;
-    }
-
-    // download or fetch stylesheet content
-    let mut stylesheet_path = katex_dir_path.clone();
-    stylesheet_path.push("katex.min.css");
-
-    let mut stylesheet: String;
-    if !stylesheet_path.exists() {
-        // download stylesheet content
-        let stylesheet_response = reqwest::get(stylesheet_url).await?;
-        stylesheet = String::from(std::str::from_utf8(&stylesheet_response.bytes().await?)?);
-        // create stylesheet file and populate it with the content
-        let mut stylesheet_file = File::create(stylesheet_path.as_path())?;
-        stylesheet_file.write_all(stylesheet.as_str().as_bytes())?;
-    } else {
-        // read stylesheet content from disk
-        stylesheet = String::new();
-        let mut stylesheet_file = File::open(stylesheet_path.as_path())?;
-        stylesheet_file.read_to_string(&mut stylesheet)?;
-    }
-
-    // download all resources from stylesheet
-    let url_pattern = Regex::new(r"(url)\s*[(]([^()]*)[)]").unwrap();
-    let rel_pattern = Regex::new(r"[.][.][/\\]|[.][/\\]").unwrap();
-    let mut resources: HashSet<String> = HashSet::new();
-    let mut tasks = Vec::new();
-    for capture in url_pattern.captures_iter(&stylesheet) {
-        let resource_name = String::from(&capture[2]);
-        // sanitize resource path
-        let mut resource_path = katex_dir_path.clone();
-        resource_path.push(&resource_name);
-        resource_path = PathBuf::from(String::from(
-            rel_pattern.replace_all(resource_path.to_str().unwrap(), ""),
-        ));
-        // create resource path and populate content
-        if !resource_path.as_path().exists() {
-            // don't download resources if they already exist
-            if resources.insert(String::from(&capture[2])) {
-                tasks.push(spawn(download_static_fonts(
-                    resource_path,
-                    cdn_root.to_owned(),
-                    resource_name,
-                )));
-            }
-        }
-    }
-    for task in tasks {
-        task.await??;
-    }
-    Ok(())
-}
-
-async fn download_static_fonts(
-    resource_path: PathBuf,
-    cdn_root: String,
-    resource_name: String,
-) -> Result<(), Error> {
-    // create all leading directories
-    let mut resource_parent_dir = resource_path.clone();
-    resource_parent_dir.pop();
-    std::fs::create_dir_all(resource_parent_dir.as_path())?;
-    // create resource file
-    let mut resource_file = File::create(resource_path)?;
-    // download content
-    let resource_url = format!("{}{}", cdn_root, &resource_name);
-    let resource_response = reqwest::get(resource_url).await?;
-    // populate file with content
-    resource_file.write_all(&resource_response.bytes().await?)?;
-    Ok(())
 }
 
 #[cfg(test)]

@@ -34,12 +34,7 @@ fn test_render_with_cfg(
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
     let (inline_opts, display_opts, extra_opts) = cfg.build_opts_from_macros(macros);
-    let build_root = PathBuf::new();
-    let build_dir = PathBuf::from("book");
-    let rt = Runtime::new().unwrap();
-    let (stylesheet_header, _) = rt
-        .block_on(katex_header(&build_root, &build_dir, &cfg))
-        .unwrap();
+    let stylesheet_header = KATEX_HEADER.to_owned();
     let rt = Runtime::new().unwrap();
     let rendered = raw_contents
         .iter()
