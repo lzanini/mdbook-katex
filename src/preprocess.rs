@@ -41,8 +41,7 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    #[tokio::main]
-    async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
