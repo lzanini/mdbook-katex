@@ -1,5 +1,5 @@
 //! Preprocessing with KaTeX.
-use std::collections::VecDeque;
+use std::borrow::Cow;
 
 use katex::Opts;
 use mdbook::{
@@ -8,7 +8,7 @@ use mdbook::{
     preprocess::{Preprocessor, PreprocessorContext},
     BookItem,
 };
-use tokio::spawn;
+use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::{
     cfg::get_config,
@@ -41,32 +41,34 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    #[tokio::main]
-    async fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
         let header = if cfg.no_css { "" } else { KATEX_HEADER }.to_owned();
-        let mut tasks = Vec::with_capacity(book.sections.len());
+        let mut chapters = Vec::with_capacity(book.sections.len());
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                tasks.push(spawn(process_chapter(
-                    chapter.content.clone(),
+                chapters.push(chapter.content.clone());
+            }
+        });
+        let mut contents: Vec<_> = chapters
+            .into_par_iter()
+            .rev()
+            .map(|raw_content| {
+                process_chapter(
+                    raw_content,
                     inline_opts.clone(),
                     display_opts.clone(),
                     header.clone(),
                     extra_opts.clone(),
-                )));
-            }
-        });
-        let mut contents = VecDeque::with_capacity(tasks.len());
-        for task in tasks {
-            contents.push_back(task.await.expect("A tokio task panicked."));
-        }
+                )
+            })
+            .collect();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if chapter.path.is_some() {
-                    chapter.content = contents.pop_front().expect("Chapter number mismatch.");
+                    chapter.content = contents.pop().expect("Chapter number mismatch.");
                 }
             }
         });
@@ -79,16 +81,13 @@ impl Preprocessor for KatexProcessor {
 }
 
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
-pub async fn process_chapter(
+pub fn process_chapter(
     raw_content: String,
     inline_opts: Opts,
     display_opts: Opts,
     stylesheet_header: String,
     extra_opts: ExtraOpts,
 ) -> String {
-    let mut rendering = Vec::new();
-    rendering.push(Render::Text(stylesheet_header.to_owned()));
-
     let mut scan = Scan::new(
         &raw_content,
         &extra_opts.block_delimiter,
@@ -96,41 +95,41 @@ pub async fn process_chapter(
     );
     scan.run();
 
+    let mut rendering = Vec::with_capacity(scan.events.len() / 2 + 5);
+    rendering.push(Render::Text(&stylesheet_header));
+
     let mut checkpoint = 0;
     let events = scan.events.iter();
     for event in events {
         match *event {
             Event::Begin(begin) => checkpoint = begin,
-            Event::TextEnd(end) => {
-                rendering.push(Render::Text((&raw_content[checkpoint..end]).into()))
-            }
+            Event::TextEnd(end) => rendering.push(Render::Text(&raw_content[checkpoint..end])),
             Event::InlineEnd(end) => {
-                let inline_feed = (&raw_content[checkpoint..end]).into();
-                let inline_block =
-                    spawn(render(inline_feed, inline_opts.clone(), extra_opts.clone()));
-                rendering.push(Render::Task(inline_block));
+                rendering.push(Render::InlineTask(&raw_content[checkpoint..end]));
                 checkpoint = end;
             }
             Event::BlockEnd(end) => {
-                let block_feed = (&raw_content[checkpoint..end]).into();
-                let block = spawn(render(block_feed, display_opts.clone(), extra_opts.clone()));
-                rendering.push(Render::Task(block));
+                rendering.push(Render::DisplayTask(&raw_content[checkpoint..end]));
                 checkpoint = end;
             }
         }
     }
 
     if raw_content.len() - 1 > checkpoint {
-        rendering.push(Render::Text(
-            (&raw_content[checkpoint..raw_content.len()]).into(),
-        ));
+        rendering.push(Render::Text(&raw_content[checkpoint..raw_content.len()]));
     }
-    let mut rendered = Vec::with_capacity(rendering.len());
-    for r in rendering {
-        rendered.push(match r {
-            Render::Text(t) => t,
-            Render::Task(t) => t.await.expect("A tokio task panicked."),
-        });
-    }
+
+    let rendered: Vec<Cow<str>> = rendering
+        .into_par_iter()
+        .map(|rend| match rend {
+            Render::Text(t) => t.into(),
+            Render::InlineTask(item) => {
+                render(item, inline_opts.clone(), extra_opts.clone()).into()
+            }
+            Render::DisplayTask(item) => {
+                render(item, display_opts.clone(), extra_opts.clone()).into()
+            }
+        })
+        .collect();
     rendered.join("")
 }

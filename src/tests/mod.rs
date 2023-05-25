@@ -1,7 +1,6 @@
 pub use super::{cfg::*, preprocess::*, render::*, scan::*};
 pub use mdbook::preprocess::Preprocessor;
 pub use std::{collections::HashMap, path::PathBuf, str::FromStr};
-pub use tokio::runtime::Runtime;
 
 #[test]
 fn test_name() {
@@ -36,17 +35,16 @@ fn test_render_with_cfg(
 ) -> (String, Vec<String>) {
     let (inline_opts, display_opts, extra_opts) = cfg.build_opts_from_macros(macros);
     let stylesheet_header = KATEX_HEADER.to_owned();
-    let rt = Runtime::new().unwrap();
     let rendered = raw_contents
         .iter()
         .map(|raw_content| {
-            rt.block_on(process_chapter(
+            process_chapter(
                 (*raw_content).to_owned(),
                 inline_opts.clone(),
                 display_opts.clone(),
                 stylesheet_header.clone(),
                 extra_opts.clone(),
-            ))
+            )
         })
         .collect();
     (stylesheet_header, rendered)
