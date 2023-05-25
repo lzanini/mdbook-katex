@@ -2,7 +2,6 @@ use clap::{crate_version, Arg, ArgMatches, Command};
 use mdbook::book::Book;
 use mdbook::errors::Error;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
-use mdbook::renderer::RenderContext;
 use mdbook_katex::preprocess::KatexProcessor;
 use std::io::{self, Read};
 
@@ -19,14 +18,13 @@ pub fn make_app() -> Command {
 }
 
 /// Produce a warning on mdBook version mismatch.
-fn check_mdbook_version(version: &String) {
+fn check_mdbook_version(version: &str) {
     if version != mdbook::MDBOOK_VERSION {
         eprintln!(
             "This mdbook-katex was built against mdbook v{}, \
-            but we are being called from mdbook v{}. \
+            but we are being called from mdbook v{version}. \
             If you have any issue, this might be a reason.",
             mdbook::MDBOOK_VERSION,
-            &version
         )
     }
 }
@@ -41,8 +39,7 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), 
         Ok(())
     } else {
         Err(Error::msg(format!(
-            "The katex preprocessor does not support the '{}' renderer",
-            &renderer
+            "The katex preprocessor does not support the '{renderer}' renderer",
         )))
     }
 }
@@ -65,29 +62,22 @@ fn main() -> Result<(), Error> {
     let matches = make_app().get_matches();
     let pre = KatexProcessor;
 
-    // grab book data from stdin
-    let mut book_data = String::new();
-    io::stdin().read_to_string(&mut book_data)?;
-
     // determine what behaviour has been requested
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         // handle cmdline supports
-        return handle_supports(&pre, sub_args);
-    } else if let Ok((ctx, book)) = CmdPreprocessor::parse_input(book_data.as_bytes()) {
-        // handle preprocessing
-        return handle_preprocessing(&pre, &ctx, book);
-    }
-    // Fake rendering to support `[output.katex]`.
-    else if RenderContext::from_json(book_data.as_bytes()).is_ok() {
-        eprintln!(
-            "
-[WARNNING] mdbook-katex: `[output.katex]` is deprecated and will be removed in v0.5.0.
-Please remove it from `book.toml`. See https://github.com/lzanini/mdbook-katex/issues/68"
-        );
-        return Ok(());
-    }
+        handle_supports(&pre, sub_args)
+    } else if let Ok((ctx, book)) = {
+        // grab book data from stdin
+        let mut book_data = String::new();
+        io::stdin().read_to_string(&mut book_data)?;
 
-    Err(Error::msg(
-        "mdbook-katex did not recognize the argument passed in.",
-    ))
+        CmdPreprocessor::parse_input(book_data.as_bytes())
+    } {
+        // handle preprocessing
+        handle_preprocessing(&pre, &ctx, book)
+    } else {
+        Err(Error::msg(
+            "mdbook-katex did not recognize the argument passed in.",
+        ))
+    }
 }
