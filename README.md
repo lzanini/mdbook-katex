@@ -3,9 +3,14 @@
 [![Crates.io version](https://img.shields.io/crates/v/mdbook-katex)](https://crates.io/crates/mdbook-katex)
 ![Crates.io downloads](https://img.shields.io/crates/d/mdbook-katex)
 
-`mdbook-katex` is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTeX equations to HTML at build time. It allows for very fast page loading, compared to rendering equations in the browser.
+mdBook-KaTeX is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTeX math expressions to HTML at build time.
 
-This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; see [this page](https://katex.org/docs/supported.html) for the list of supported LaTeX functions.
+- Very fast page loading. Much faster than rendering equations in the browser.
+- No need for client-side JavaScript.
+- Customization such as macros and delimiters.
+
+Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
+[List of LaTeX functions supported by KaTeX](https://katex.org/docs/supported.html).
 
 <p align="center">
   <img width="75%" height="75%" src="https://user-images.githubusercontent.com/71221149/107123378-84acbf80-689d-11eb-811d-26f20e32556c.gif">
@@ -13,7 +18,7 @@ This preprocessor uses the [katex](https://github.com/xu-cheng/katex-rs) crate; 
 
 ## Getting Started
 
-First, install `mdbook-katex`
+First, install mdBook-KaTeX
 
 - Non-Windows users:
 
@@ -31,12 +36,12 @@ Then, add the following line to your `book.toml` file
 after = ["links"]
 ```
 
-You can now use `$` and `$$` delimiters for inline and display equations within your `.md` files. If you need a regular dollar symbol, you can escape delimiters with a backslash `\$`.
+You can now use `$` and `$$` delimiters for inline and display math expressions within your `.md` files. If you need a regular dollar symbol, you need to escape delimiters with a backslash `\$`.
 
 ```markdown
 # Chapter 1
 
-Here is an inline example, $ \pi(\theta) $, 
+Here is an inline example, $ \pi(\theta) $,
 
 an equation,
 
@@ -45,18 +50,16 @@ $$ \nabla f(x) \in \mathbb{R}^n, $$
 and a regular \$ symbol.
 ```
 
-LaTeX equations will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
+Math expressions will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
 ## KaTeX options
 
-The preprocessor supports passing options to the katex-rs crate in order
-to configure its behaviour. These options are specified under the
-`[preprocessor.katex]` directive.
+Most [KaTeX options](https://katex.org/docs/options.html) are supported via the `katex` crate.
+Specify these options under `[preprocessor.katex]` in your `book.toml`:
 
-The currently supported arguments are:
 | Argument | Type |
 | :- | :- |
-| [`output`](https://katex.org/docs/options.html#:~:text=default-,output,-string) | `string` |
+| [`output`](https://katex.org/docs/options.html#:~:text=default-,output,-string) | `"html"`, `"mathml"`, or `"htmlAndMathml"` |
 | [`leqno`](https://katex.org/docs/options.html#:~:text=default-,leqno,-boolean) | `boolean` |
 | [`fleqn`](https://katex.org/docs/options.html#:~:text=LaTeX-,fleqn,-boolean) | `boolean` |
 | [`throw-on-error`](https://katex.org/docs/options.html#:~:text=package-,throwonerror,-boolean) | `boolean` |
@@ -66,32 +69,43 @@ The currently supported arguments are:
 | [`max-expand`](https://katex.org/docs/options.html#:~:text=maxexpand) | `number` |
 | [`trust`](https://katex.org/docs/options.html#:~:text=LaTeX-,trust,-boolean) | `boolean` |
 
-There are also options to configure the behaviour of the preprocessor:
-| Option | Default | Description |
-| :- | :- | :- |
-| `no-css` | `false` | Do not inject KaTeX stylesheet link (See [Self-host KaTeX CSS and fonts](#self-host-katex-css-and-fonts)) |
-| `macros` | `None` | Path to macros file (see [Custom macros](#custom-macros)) |
-| `include-src` | `false` | Include math expressions source code (See [Including math Source](#including-math-source)) |
-| `block-delimiter` | `{left = "$$", right = "$$"}` | See [Custom delimiter](#custom-delimiter) |
-| `inline-delimiter` | `{left = "$", right = "$"}` | See [Custom delimiter](#custom-delimiter) |
-| `static-css` | `false` | ([Deprecated](https://github.com/lzanini/mdbook-katex/issues/68)) Generates fully static html pages with katex styling |
+There are also extra options to configure the behaviour of the preprocessor:
 
-For example:
+| Option | Description |
+| :- | :- |
+| `no-css` | Do not inject KaTeX stylesheet link (See [Self-host KaTeX CSS and fonts](#self-host-katex-css-and-fonts)) |
+| `macros` | Path to macros file (see [Custom macros](#custom-macros)) |
+| `include-src` | Include math expressions source code (See [Including math Source](#including-math-source)) |
+| `block-delimiter` | See [Custom delimiter](#custom-delimiter) |
+| `inline-delimiter` | See [Custom delimiter](#custom-delimiter) |
+
+For example, the default configuration:
 
 ```toml
 [preprocessor.katex]
-renderers = ["html"]
+after = ["links"]
+# KaTeX options.
+output = "html"
+leqno = false
+fleqn = false
+throw-on-error = true
+error-color = "#cc0000"
+min-rule-thickness = -1.0
+max-size = "Infinity"
+max-expand = 1000
+trust = false
+# Extra options.
 no-css = false
 include-src = false
-block-delimiter = {left = "$$", right = "$$"}
-inline-delimiter = {left = "$", right = "$"}
+block-delimiter = { left = "$$", right = "$$" }
+inline-delimiter = { left = "$", right = "$" }
 ```
 
 ## Self-host KaTeX CSS and fonts
 
 KaTeX requires a stylesheet and fonts to render correctly.
 
-By default, `mdbook-katex` inject a KaTeX stylesheet link pointing to a CDN.
+By default, mdBook-KaTeX injects a KaTeX stylesheet link pointing to a CDN.
 
 If you want to self-host the CSS and fonts instead, you should specify in `book.toml`:
 
@@ -100,9 +114,9 @@ If you want to self-host the CSS and fonts instead, you should specify in `book.
 no-css = true
 ```
 
-and manually add the CSS and fonts to your mdBook project before build.
+and manually add the CSS and fonts to your mdBook project before building it.
 
-See [`mdbook-katex` Static CSS Example](https://github.com/SichangHe/mdbook_katex_static_css) for an automated example.
+See [mdBook-KaTeX Static CSS Example](https://github.com/SichangHe/mdbook_katex_static_css) for an automated example.
 
 ## Custom macros
 
@@ -122,7 +136,7 @@ macros = "path/to/macros.txt"
 
 These macros can then be used in your `.md` files
 
-```
+```markdown
 # Chapter 1
 
 $$ \grad f(x) \in \R{n}{p} $$
@@ -134,7 +148,7 @@ This option is added so users can have a convenient way to copy the source code 
 
 When `include-src` is set to `true`, each math block is wrapped within a `<data>` tag with `class="katex-src"` with the included math source code being its `value` attribute.
 
-For example, before being fed into `mdbook`,
+For example, before being fed into mdBook,
 
 ```markdown
 Define $f(x)$:
@@ -150,14 +164,11 @@ is preprocessed into (the content of the `katex` `span`s are omitted and represe
 ```markdown
 Define <data class="katex-src" value="f(x)"><span class="katex">…</span></data>:
 
-<data class="katex-src" value="
-f(x)=x^2\\
-x\in\R
-"><span class="katex-display"><span class="katex">…</span></span></data>
+<data class="katex-src" value="&#10;f(x)=x^2\\&#10;x\in\R&#10;"><span class="katex-display"><span class="katex">…</span></span></data>
 ```
 
 The math source code is included in a minimal fashion, and it is up to the users to write custom CSS and JavaScript to make use of it.
-For more information about adding custom CSS and JavaScript in `mdbook`, see [additional-css and additional-js](https://rust-lang.github.io/mdBook/format/configuration/renderers.html#html-renderer-options).
+For more information about adding custom CSS and JavaScript in mdBook, see [additional-css and additional-js](https://rust-lang.github.io/mdBook/format/configuration/renderers.html#html-renderer-options).
 
 If you need more information about this feature, please check the issues or file a new issue.
 
@@ -168,17 +179,14 @@ For example, to use `\(`and `\)` for inline math and `\[` and `\]` for math bloc
 
 ```toml
 [preprocessor.katex]
-block-delimiter = {left = "\\[", right = "\\]"}
-inline-delimiter = {left = "\\(", right = "\\)"}
+block-delimiter = { left = "\\[", right = "\\]" }
+inline-delimiter = { left = "\\(", right = "\\)" }
 ```
 
-Notice that the double backslash above are just used to escape `\` in the TOML format.
+Note that the double backslash above are just used to escape `\` in the TOML format.
 
 ## Caveats
 
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
 
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality, all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
-
-If you specify `[output.katex]`, the build artifact of the book will be in a folder named `html` inside the directory you specify instead of being directly there.
-Consider this when you use `mdbook-katex` in your CIs.
