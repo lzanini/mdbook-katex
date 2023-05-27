@@ -1,9 +1,8 @@
 use clap::{crate_version, Arg, ArgMatches, Command};
-use mdbook::book::Book;
 use mdbook::errors::Error;
-use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
+use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_katex::preprocess::KatexProcessor;
-use std::io::{self, Read};
+use std::io;
 
 /// Parse CLI options.
 pub fn make_app() -> Command {
@@ -45,14 +44,11 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), 
 }
 
 /// Preprocess `book` using `pre` and print it out.
-fn handle_preprocessing(
-    pre: &dyn Preprocessor,
-    ctx: &PreprocessorContext,
-    book: Book,
-) -> Result<(), Error> {
+fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), Error> {
+    let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
     check_mdbook_version(&ctx.mdbook_version);
 
-    let processed_book = pre.run(ctx, book)?;
+    let processed_book = pre.run(&ctx, book)?;
     serde_json::to_writer(io::stdout(), &processed_book)?;
     Ok(())
 }
@@ -67,12 +63,7 @@ fn main() -> Result<(), Error> {
         // handle cmdline supports
         handle_supports(&pre, sub_args)
     } else {
-        // grab book data from stdin
-        let mut book_data = String::new();
-        io::stdin().read_to_string(&mut book_data)?;
-
-        let (ctx, book) = CmdPreprocessor::parse_input(book_data.as_bytes())?;
         // handle preprocessing
-        handle_preprocessing(&pre, &ctx, book)
+        handle_preprocessing(&pre)
     }
 }
