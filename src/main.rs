@@ -66,18 +66,13 @@ fn main() -> Result<(), Error> {
     if let Some(sub_args) = matches.subcommand_matches("supports") {
         // handle cmdline supports
         handle_supports(&pre, sub_args)
-    } else if let Ok((ctx, book)) = {
+    } else {
         // grab book data from stdin
         let mut book_data = String::new();
         io::stdin().read_to_string(&mut book_data)?;
 
-        CmdPreprocessor::parse_input(book_data.as_bytes())
-    } {
+        let (ctx, book) = CmdPreprocessor::parse_input(book_data.as_bytes())?;
         // handle preprocessing
         handle_preprocessing(&pre, &ctx, book)
-    } else {
-        Err(Error::msg(
-            "mdbook-katex did not recognize the argument passed in.",
-        ))
     }
 }
