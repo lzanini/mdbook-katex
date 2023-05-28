@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use katex::Opts;
 use mdbook::{
     book::Book,
-    errors::Error,
+    errors::Result,
     preprocess::{Preprocessor, PreprocessorContext},
     BookItem,
 };
@@ -41,7 +41,7 @@ impl Preprocessor for KatexProcessor {
         "katex"
     }
 
-    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book, Error> {
+    fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book> {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);

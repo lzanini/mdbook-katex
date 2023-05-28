@@ -1,5 +1,5 @@
 use clap::{crate_version, Arg, ArgMatches, Command};
-use mdbook::errors::Error;
+use mdbook::errors::{Error, Result};
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_katex::preprocess::KatexProcessor;
 use std::io;
@@ -29,7 +29,7 @@ fn check_mdbook_version(version: &str) {
 }
 
 /// Tell mdBook if we support what it asks for.
-fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), Error> {
+fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<()> {
     let renderer = sub_args
         .get_one::<String>("renderer")
         .expect("Required argument");
@@ -44,7 +44,7 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<(), 
 }
 
 /// Preprocess `book` using `pre` and print it out.
-fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), Error> {
+fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<()> {
     let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
     check_mdbook_version(&ctx.mdbook_version);
 
@@ -53,7 +53,7 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<(), Error> {
     Ok(())
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     // set up app
     let matches = make_app().get_matches();
     let pre = KatexProcessor;
