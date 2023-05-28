@@ -88,20 +88,17 @@ pub fn process_chapter(
     stylesheet_header: String,
     extra_opts: ExtraOpts,
 ) -> String {
-    let mut scan = Scan::new(
+    let scan = Scan::new(
         &raw_content,
         &extra_opts.block_delimiter,
         &extra_opts.inline_delimiter,
     );
-    scan.run();
-
-    let mut rendering = Vec::with_capacity(scan.events.len() / 2 + 5);
+    let mut rendering = Vec::new();
     rendering.push(Render::Text(&stylesheet_header));
 
     let mut checkpoint = 0;
-    let events = scan.events.iter();
-    for event in events {
-        match *event {
+    for event in scan {
+        match event {
             Event::Begin(begin) => checkpoint = begin,
             Event::TextEnd(end) => rendering.push(Render::Text(&raw_content[checkpoint..end])),
             Event::InlineEnd(end) => {

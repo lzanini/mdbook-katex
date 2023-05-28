@@ -1,4 +1,6 @@
 //! Scan Markdown text and identify math block events.
+use std::collections::VecDeque;
+
 use serde_derive::{Deserialize, Serialize};
 
 /// A pair of strings are delimiters.
@@ -57,10 +59,22 @@ pub struct Scan<'a> {
     string: &'a str,
     bytes: &'a [u8],
     index: usize,
-    /// Block and inline math `Event`s.
-    pub events: Vec<Event>,
+    /// Buffer for block and inline math `Event`s.
+    pub events: VecDeque<Event>,
     block_delimiter: &'a Delimiter,
     inline_delimiter: &'a Delimiter,
+}
+
+impl<'a> Iterator for Scan<'a> {
+    type Item = Event;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(item) = self.events.pop_front() {
+            return Some(item);
+        }
+        self.process_byte().ok()?;
+        self.next()
+    }
 }
 
 impl<'a> Scan<'a> {
@@ -74,7 +88,7 @@ impl<'a> Scan<'a> {
             string,
             bytes: string.as_bytes(),
             index: 0,
-            events: Vec::new(),
+            events: VecDeque::new(),
             block_delimiter,
             inline_delimiter,
         }
@@ -161,7 +175,7 @@ impl<'a> Scan<'a> {
     /// Return `Err(())` if no more bytes to process.
     fn process_delimit(&mut self, inline: bool) -> Result<(), ()> {
         if self.index > 0 {
-            self.events.push(Event::TextEnd(self.index));
+            self.events.push_back(Event::TextEnd(self.index));
         }
 
         let delim = if inline {
@@ -170,7 +184,7 @@ impl<'a> Scan<'a> {
             self.block_delimiter
         };
         self.index += delim.left.len();
-        self.events.push(Event::Begin(self.index));
+        self.events.push_back(Event::Begin(self.index));
 
         loop {
             self.index += self.string[self.index..].find(&delim.right).ok_or(())?;
@@ -192,9 +206,9 @@ impl<'a> Scan<'a> {
                 } else {
                     Event::BlockEnd(self.index)
                 };
-                self.events.push(end_event);
+                self.events.push_back(end_event);
                 self.index += delim.right.len();
-                self.events.push(Event::Begin(self.index));
+                self.events.push_back(Event::Begin(self.index));
                 break;
             } else {
                 self.index += delim.right.len();
