@@ -67,9 +67,7 @@ impl Preprocessor for KatexProcessor {
             .collect();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if chapter.path.is_some() {
-                    chapter.content = contents.pop().expect("Chapter number mismatch.");
-                }
+                chapter.content = contents.pop().expect("Chapter number mismatch.");
             }
         });
         Ok(book)
