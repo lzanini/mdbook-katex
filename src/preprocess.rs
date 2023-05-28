@@ -88,20 +88,39 @@ pub fn process_chapter(
     stylesheet_header: String,
     extra_opts: ExtraOpts,
 ) -> String {
-    let mut scan = Scan::new(
-        &raw_content,
+    get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
+        .into_par_iter()
+        .map(|rend| match rend {
+            Render::Text(t) => t.into(),
+            Render::InlineTask(item) => {
+                render(item, inline_opts.clone(), extra_opts.clone()).into()
+            }
+            Render::DisplayTask(item) => {
+                render(item, display_opts.clone(), extra_opts.clone()).into()
+            }
+        })
+        .collect::<Vec<Cow<_>>>()
+        .join("")
+}
+
+/// Find all the `Render` tasks in `raw_content`.
+pub fn get_render_tasks<'a>(
+    raw_content: &'a str,
+    stylesheet_header: &'a str,
+    extra_opts: &ExtraOpts,
+) -> Vec<Render<'a>> {
+    let scan = Scan::new(
+        raw_content,
         &extra_opts.block_delimiter,
         &extra_opts.inline_delimiter,
     );
-    scan.run();
 
-    let mut rendering = Vec::with_capacity(scan.events.len() / 2 + 5);
-    rendering.push(Render::Text(&stylesheet_header));
+    let mut rendering = Vec::new();
+    rendering.push(Render::Text(stylesheet_header));
 
     let mut checkpoint = 0;
-    let events = scan.events.iter();
-    for event in events {
-        match *event {
+    for event in scan {
+        match event {
             Event::Begin(begin) => checkpoint = begin,
             Event::TextEnd(end) => rendering.push(Render::Text(&raw_content[checkpoint..end])),
             Event::InlineEnd(end) => {
@@ -118,18 +137,5 @@ pub fn process_chapter(
     if raw_content.len() - 1 > checkpoint {
         rendering.push(Render::Text(&raw_content[checkpoint..raw_content.len()]));
     }
-
-    let rendered: Vec<Cow<str>> = rendering
-        .into_par_iter()
-        .map(|rend| match rend {
-            Render::Text(t) => t.into(),
-            Render::InlineTask(item) => {
-                render(item, inline_opts.clone(), extra_opts.clone()).into()
-            }
-            Render::DisplayTask(item) => {
-                render(item, display_opts.clone(), extra_opts.clone()).into()
-            }
-        })
-        .collect();
-    rendered.join("")
+    rendering
 }
