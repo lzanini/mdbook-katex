@@ -69,11 +69,12 @@ impl<'a> Iterator for Scan<'a> {
     type Item = Event;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(item) = self.events.pop_front() {
-            return Some(item);
+        loop {
+            match self.events.pop_front() {
+                Some(item) => return Some(item),
+                None => self.process_byte().ok()?,
+            }
         }
-        self.process_byte().ok()?;
-        self.next()
     }
 }
 
