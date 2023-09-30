@@ -72,10 +72,6 @@ impl Preprocessor for KatexProcessor {
         });
         Ok(book)
     }
-
-    fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer == "html" || renderer == "markdown"
-    }
 }
 
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.

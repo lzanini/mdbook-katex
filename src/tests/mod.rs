@@ -13,7 +13,7 @@ fn test_name() {
 fn test_support_html() {
     let preprocessor = KatexProcessor;
     assert!(preprocessor.supports_renderer("html"));
-    assert!(!preprocessor.supports_renderer("other_renderer"))
+    assert!(preprocessor.supports_renderer("other_renderer"))
 }
 
 fn test_render(raw_content: &str) -> (String, String) {
