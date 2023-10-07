@@ -19,21 +19,25 @@ pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts) -> String {
     let mut rendered_content = String::new();
 
     // try to render equation
-    if let Ok(rendered) = katex::render_with_opts(item, opts) {
-        let rendered = rendered.replace('\n', " ");
-        if extra_opts.include_src {
-            // Wrap around with `data.katex-src` tag.
-            rendered_content.push_str(r#"<data class="katex-src" value=""#);
-            rendered_content.push_str(&item.replace('"', r#"\""#).replace('\n', r"&#10;"));
-            rendered_content.push_str(r#"">"#);
-            rendered_content.push_str(&rendered);
-            rendered_content.push_str(r"</data>");
-        } else {
-            rendered_content.push_str(&rendered);
+    match katex::render_with_opts(item, opts) {
+        Ok(rendered) => {
+            let rendered = rendered.replace('\n', " ");
+            if extra_opts.include_src {
+                // Wrap around with `data.katex-src` tag.
+                rendered_content.push_str(r#"<data class="katex-src" value=""#);
+                rendered_content.push_str(&item.replace('"', r#"\""#).replace('\n', r"&#10;"));
+                rendered_content.push_str(r#"">"#);
+                rendered_content.push_str(&rendered);
+                rendered_content.push_str(r"</data>");
+            } else {
+                rendered_content.push_str(&rendered);
+            }
         }
-    // if rendering fails, keep the unrendered equation
-    } else {
-        rendered_content.push_str(item)
+        Err(err) => {
+            eprintln!("mdbook-katex: Failed to render `{item}`: {err:?}.");
+            // if rendering fails, keep the unrendered equation
+            rendered_content.push_str(item)
+        }
     }
 
     rendered_content
