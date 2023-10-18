@@ -20,14 +20,13 @@ Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
 
 First, install mdBook-KaTeX
 
-- Non-Windows users:
+### **Non-Windows** users:
 
-    ```shell
-    cargo install mdbook-katex
-    ```
-
-- Windows users:
-    The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
+  ```shell
+  cargo install mdbook-katex
+  ```
+### Windows users:
+  The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
 
 Then, add the following line to your `book.toml` file
 
@@ -189,4 +188,4 @@ Note that the double backslash above are just used to escape `\` in the TOML for
 
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
 
-Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality, all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
+Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality (matrix, ...) , all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
