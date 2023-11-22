@@ -30,6 +30,9 @@ pub struct ExtraOpts {
     pub block_delimiter: Delimiter,
     /// Delimiter for math inline block.
     pub inline_delimiter: Delimiter,
+    /// Process expressions in each chapter in parallel.
+    /// May break inline LaTeX command definitions.
+    pub parallel_chapter: bool,
 }
 
 /// KaTeX `mdbook::preprocess::Proprecessor` for mdBook.
@@ -82,19 +85,26 @@ pub fn process_chapter(
     stylesheet_header: String,
     extra_opts: ExtraOpts,
 ) -> String {
-    get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
-        .into_par_iter()
-        .map(|rend| match rend {
-            Render::Text(t) => t.into(),
-            Render::InlineTask(item) => {
-                render(item, inline_opts.clone(), extra_opts.clone()).into()
-            }
-            Render::DisplayTask(item) => {
-                render(item, display_opts.clone(), extra_opts.clone()).into()
-            }
-        })
-        .collect::<Vec<Cow<_>>>()
-        .join("")
+    let render_expr = |rend| match rend {
+        Render::Text(t) => t.into(),
+        Render::InlineTask(item) => render(item, inline_opts.clone(), extra_opts.clone()).into(),
+        Render::DisplayTask(item) => render(item, display_opts.clone(), extra_opts.clone()).into(),
+    };
+    let render_tasks = get_render_tasks(&raw_content, &stylesheet_header, &extra_opts);
+
+    if extra_opts.parallel_chapter {
+        render_tasks
+            .into_par_iter()
+            .map(render_expr)
+            .collect::<Vec<Cow<_>>>()
+            .join("")
+    } else {
+        render_tasks
+            .into_iter()
+            .map(render_expr)
+            .collect::<Vec<Cow<_>>>()
+            .join("")
+    }
 }
 
 /// Find all the `Render` tasks in `raw_content`.

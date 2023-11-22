@@ -45,6 +45,9 @@ pub struct KatexConfig {
     pub block_delimiter: Delimiter,
     /// Delimiter for math inline block.
     pub inline_delimiter: Delimiter,
+    /// Process expressions in each chapter in parallel.
+    /// May break inline LaTeX command definitions.
+    pub parallel_chapter: bool,
 }
 
 impl Default for KatexConfig {
@@ -67,6 +70,7 @@ impl Default for KatexConfig {
             macros: None,
             block_delimiter: Delimiter::same("$$".into()),
             inline_delimiter: Delimiter::same("$".into()),
+            parallel_chapter: true,
         }
     }
 }
@@ -130,6 +134,7 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
             include_src: self.include_src,
             block_delimiter: self.block_delimiter.clone(),
             inline_delimiter: self.inline_delimiter.clone(),
+            parallel_chapter: self.parallel_chapter,
         };
         (inline_opts, display_opts, extra_opts)
     }
