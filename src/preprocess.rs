@@ -55,9 +55,9 @@ impl Preprocessor for KatexProcessor {
         });
 
         let mut contents = if cfg.pre_render {
-            process_all_chapters_prerender(chapters, cfg, header, ctx)
+            process_all_chapters_prerender(&chapters, &cfg, &header, ctx)
         } else {
-            process_all_chapters_escaping(chapters, cfg, header, ctx)
+            process_all_chapters_escaping(&chapters, &cfg, &header, ctx)
         };
 
         book.for_each_mut(|item| {
@@ -72,11 +72,11 @@ impl Preprocessor for KatexProcessor {
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
 #[cfg(feature = "pre-render")]
 pub fn process_chapter_prerender(
-    raw_content: String,
+    raw_content: &str,
     inline_opts: Opts,
     display_opts: Opts,
-    stylesheet_header: String,
-    extra_opts: ExtraOpts,
+    stylesheet_header: &str,
+    extra_opts: &ExtraOpts,
 ) -> String {
     get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
         .into_par_iter()
@@ -96,9 +96,9 @@ pub fn process_chapter_prerender(
 /// KaTeX reander
 #[cfg(not(feature = "pre-render"))]
 pub fn process_all_chapters_prerender(
-    _: Vec<String>,
-    _: KatexConfig,
-    _: String,
+    _: &Vec<String>,
+    _: &KatexConfig,
+    _: &str,
     _: &PreprocessorContext,
 ) -> Vec<String> {
     panic!("Unable to pre-render. Please rebuild with the feature `pre-render`!")
@@ -107,9 +107,9 @@ pub fn process_all_chapters_prerender(
 /// KaTeX reander
 #[cfg(feature = "pre-render")]
 pub fn process_all_chapters_prerender(
-    chapters: Vec<String>,
-    cfg: KatexConfig,
-    stylesheet_header: String,
+    chapters: &Vec<String>,
+    cfg: &KatexConfig,
+    stylesheet_header: &str,
     ctx: &PreprocessorContext,
 ) -> Vec<String> {
     let extra_opts = cfg.build_extra_opts();
@@ -123,8 +123,8 @@ pub fn process_all_chapters_prerender(
                 raw_content,
                 inline_opts.clone(),
                 display_opts.clone(),
-                stylesheet_header.clone(),
-                extra_opts.clone(),
+                stylesheet_header,
+                &extra_opts,
             )
         })
         .collect();
@@ -134,9 +134,9 @@ pub fn process_all_chapters_prerender(
 
 /// KaTeX reander
 pub fn process_all_chapters_escaping(
-    chapters: Vec<String>,
-    cfg: KatexConfig,
-    stylesheet_header: String,
+    chapters: &Vec<String>,
+    cfg: &KatexConfig,
+    stylesheet_header: &str,
     _: &PreprocessorContext,
 ) -> Vec<String> {
     let extra_opts = cfg.build_extra_opts();
@@ -144,9 +144,7 @@ pub fn process_all_chapters_escaping(
     let contents: Vec<_> = chapters
         .into_par_iter()
         .rev()
-        .map(|raw_content| {
-            process_chapter_escaping(raw_content, &extra_opts, stylesheet_header.clone())
-        })
+        .map(|raw_content| process_chapter_escaping(&raw_content, &extra_opts, stylesheet_header))
         .collect();
 
     contents
@@ -154,9 +152,9 @@ pub fn process_all_chapters_escaping(
 
 /// Escaping Katex equations.
 pub fn process_chapter_escaping(
-    raw_content: String,
+    raw_content: &str,
     extra_opts: &ExtraOpts,
-    stylesheet_header: String,
+    stylesheet_header: &str,
 ) -> String {
     get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
         .into_par_iter()

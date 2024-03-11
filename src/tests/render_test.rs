@@ -41,11 +41,11 @@ fn test_render_with_cfg(
         .iter()
         .map(|raw_content| {
             process_chapter_prerender(
-                (*raw_content).to_owned(),
+                raw_content,
                 inline_opts.clone(),
                 display_opts.clone(),
-                stylesheet_header.clone(),
-                extra_opts.clone(),
+                &stylesheet_header,
+                &extra_opts,
             )
         })
         .collect();

@@ -11,13 +11,7 @@ fn test_render_with_cfg(raw_contents: &[&str], cfg: KatexConfig) -> (String, Vec
     let stylesheet_header = KATEX_HEADER.to_owned();
     let rendered = raw_contents
         .iter()
-        .map(|raw_content| {
-            process_chapter_escaping(
-                (*raw_content).to_owned(),
-                &extra_opts,
-                stylesheet_header.clone(),
-            )
-        })
+        .map(|raw_content| process_chapter_escaping(raw_content, &extra_opts, &stylesheet_header))
         .collect();
     (stylesheet_header, rendered)
 }
@@ -60,7 +54,6 @@ fn test_escaping_underscore() {
 fn test_escaping_vmatrix() {
     let raw_content = r"$$\begin{vmatrix}a&b\\c&d\end{vmatrix}$$";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
-    let expected_output = stylesheet_header
-        + r"$$\\begin{vmatrix}a&b\\\\c&d\\end{vmatrix}$$";
+    let expected_output = stylesheet_header + r"$$\\begin{vmatrix}a&b\\\\c&d\\end{vmatrix}$$";
     debug_assert_eq!(expected_output, rendered_content);
 }
