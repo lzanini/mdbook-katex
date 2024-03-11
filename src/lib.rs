@@ -6,4 +6,5 @@ pub mod render;
 pub mod scan;
 
 #[cfg(test)]
+#[cfg(feature = "pre-render")]
 mod tests;

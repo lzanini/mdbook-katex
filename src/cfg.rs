@@ -1,4 +1,6 @@
 //! Configurations for preprocessing KaTeX.
+
+#[cfg(feature = "pre-render")]
 use std::{
     collections::HashMap,
     fs::File,
@@ -45,6 +47,8 @@ pub struct KatexConfig {
     pub block_delimiter: Delimiter,
     /// Delimiter for math inline block.
     pub inline_delimiter: Delimiter,
+    /// Use katex.rs to pre-render math equations.
+    pub pre_render: bool,
 }
 
 impl Default for KatexConfig {
@@ -67,6 +71,7 @@ impl Default for KatexConfig {
             macros: None,
             block_delimiter: Delimiter::same("$$".into()),
             inline_delimiter: Delimiter::same("$".into()),
+            pre_render: cfg!(feature = "pre-render"),
         }
     }
 }
@@ -74,6 +79,7 @@ impl Default for KatexConfig {
 impl KatexConfig {
     /// Configured output type.
     /// Defaults to `Html`, can also be `Mathml` or `HtmlAndMathml`.
+    #[cfg(feature = "pre-render")]
     pub fn output_type(&self) -> katex::OutputType {
         match self.output.as_str() {
             "html" => katex::OutputType::Html,
@@ -91,7 +97,8 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
 
     /// From `root`, load macros and generate configuration options
     /// `(inline_opts, display_opts, extra_opts)`.
-    pub fn build_opts<P>(&self, root: P) -> (katex::Opts, katex::Opts, ExtraOpts)
+    #[cfg(feature = "pre-render")]
+    pub fn build_opts<P>(&self, root: P) -> (katex::Opts, katex::Opts)
     where
         P: AsRef<Path>,
     {
@@ -101,11 +108,12 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
         self.build_opts_from_macros(macros)
     }
 
-    /// Given `macros`, generate `(inline_opts, display_opts, extra_opts)`.
+    /// Given `macros`, generate `(inline_opts, display_opts)`.
+    #[cfg(feature = "pre-render")]
     pub fn build_opts_from_macros(
         &self,
         macros: HashMap<String, String>,
-    ) -> (katex::Opts, katex::Opts, ExtraOpts) {
+    ) -> (katex::Opts, katex::Opts) {
         let mut configure_katex_opts = katex::Opts::builder();
         configure_katex_opts
             .output_type(self.output_type())
@@ -126,16 +134,21 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
             .unwrap();
         // display rendering options
         let display_opts = configure_katex_opts.display_mode(true).build().unwrap();
+        (inline_opts, display_opts)
+    }
+    /// generate `extraOpts`
+    pub fn build_extra_opts(&self) -> ExtraOpts {
         let extra_opts = ExtraOpts {
             include_src: self.include_src,
             block_delimiter: self.block_delimiter.clone(),
             inline_delimiter: self.inline_delimiter.clone(),
         };
-        (inline_opts, display_opts, extra_opts)
+        return extra_opts;
     }
 }
 
 /// Load macros from `root`/`macros_path` into a `HashMap`.
+#[cfg(feature = "pre-render")]
 fn load_macros<P>(root: P, macros_path: &Option<String>) -> HashMap<String, String>
 where
     P: AsRef<Path>,
@@ -156,6 +169,7 @@ where
 }
 
 /// Absolute path of the macro file.
+#[cfg(feature = "pre-render")]
 pub fn get_macro_path<P>(root: P, macros_path: &Option<String>) -> Option<PathBuf>
 where
     P: AsRef<Path>,
@@ -175,6 +189,7 @@ pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Er
 }
 
 /// Read file at `path`.
+#[cfg(feature = "pre-render")]
 pub fn load_as_string(path: &Path) -> String {
     let display = path.display();
 

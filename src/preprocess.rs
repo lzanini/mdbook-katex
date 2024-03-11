@@ -1,7 +1,9 @@
 //! Preprocessing with KaTeX.
 use std::borrow::Cow;
 
-use katex::Opts;
+#[cfg(feature = "pre-render")]
+use {crate::render::render, katex::Opts};
+
 use mdbook::{
     book::Book,
     errors::Result,
@@ -11,8 +13,8 @@ use mdbook::{
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::{
-    cfg::get_config,
-    render::{render, Render},
+    cfg::{get_config, KatexConfig},
+    render::{escaping3, Render},
     scan::{Delimiter, Event, Scan},
 };
 
@@ -44,7 +46,6 @@ impl Preprocessor for KatexProcessor {
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> Result<Book> {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
-        let (inline_opts, display_opts, extra_opts) = cfg.build_opts(&ctx.root);
         let header = if cfg.no_css { "" } else { KATEX_HEADER }.to_owned();
         let mut chapters = Vec::with_capacity(book.sections.len());
         book.for_each_mut(|item| {
@@ -52,19 +53,13 @@ impl Preprocessor for KatexProcessor {
                 chapters.push(chapter.content.clone());
             }
         });
-        let mut contents: Vec<_> = chapters
-            .into_par_iter()
-            .rev()
-            .map(|raw_content| {
-                process_chapter(
-                    raw_content,
-                    inline_opts.clone(),
-                    display_opts.clone(),
-                    header.clone(),
-                    extra_opts.clone(),
-                )
-            })
-            .collect();
+
+        let mut contents = if cfg.pre_render {
+            process_all_chapters_prerender(chapters, cfg, header, ctx)
+        } else {
+            process_all_chapters_escaping(chapters, cfg, header, ctx)
+        };
+
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 chapter.content = contents.pop().expect("Chapter number mismatch.");
@@ -75,7 +70,8 @@ impl Preprocessor for KatexProcessor {
 }
 
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
-pub fn process_chapter(
+#[cfg(feature = "pre-render")]
+pub fn process_chapter_prerender(
     raw_content: String,
     inline_opts: Opts,
     display_opts: Opts,
@@ -92,6 +88,82 @@ pub fn process_chapter(
             Render::DisplayTask(item) => {
                 render(item, display_opts.clone(), extra_opts.clone()).into()
             }
+        })
+        .collect::<Vec<Cow<_>>>()
+        .join("")
+}
+
+/// KaTeX reander
+#[cfg(not(feature = "pre-render"))]
+pub fn process_all_chapters_prerender(
+    _: Vec<String>,
+    _: KatexConfig,
+    _: String,
+    _: &PreprocessorContext,
+) -> Vec<String> {
+    panic!("Unable to pre-render. Please rebuild with the feature `pre-render`!")
+}
+
+/// KaTeX reander
+#[cfg(feature = "pre-render")]
+pub fn process_all_chapters_prerender(
+    chapters: Vec<String>,
+    cfg: KatexConfig,
+    stylesheet_header: String,
+    ctx: &PreprocessorContext,
+) -> Vec<String> {
+    let extra_opts = cfg.build_extra_opts();
+    let (inline_opts, display_opts) = cfg.build_opts(&ctx.root);
+
+    let contents: Vec<_> = chapters
+        .into_par_iter()
+        .rev()
+        .map(|raw_content| {
+            process_chapter_prerender(
+                raw_content,
+                inline_opts.clone(),
+                display_opts.clone(),
+                stylesheet_header.clone(),
+                extra_opts.clone(),
+            )
+        })
+        .collect();
+
+    contents
+}
+
+/// KaTeX reander
+pub fn process_all_chapters_escaping(
+    chapters: Vec<String>,
+    cfg: KatexConfig,
+    stylesheet_header: String,
+    _: &PreprocessorContext,
+) -> Vec<String> {
+    let extra_opts = cfg.build_extra_opts();
+
+    let contents: Vec<_> = chapters
+        .into_par_iter()
+        .rev()
+        .map(|raw_content| {
+            process_chapter_escaping(raw_content, &extra_opts, stylesheet_header.clone())
+        })
+        .collect();
+
+    contents
+}
+
+/// Escaping Katex equations.
+pub fn process_chapter_escaping(
+    raw_content: String,
+    extra_opts: &ExtraOpts,
+    stylesheet_header: String,
+) -> String {
+    get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
+        .into_par_iter()
+        .map(|rend| match rend {
+            Render::Text(t) => t.into(),
+            Render::InlineTask(item) => escaping3(item, &extra_opts.inline_delimiter).into(),
+            Render::DisplayTask(item) => escaping3(item, &extra_opts.block_delimiter).into(),
         })
         .collect::<Vec<Cow<_>>>()
         .join("")

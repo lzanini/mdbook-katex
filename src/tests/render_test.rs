@@ -34,12 +34,13 @@ fn test_render_with_cfg(
     macros: HashMap<String, String>,
     cfg: KatexConfig,
 ) -> (String, Vec<String>) {
-    let (inline_opts, display_opts, extra_opts) = cfg.build_opts_from_macros(macros);
+    let (inline_opts, display_opts) = cfg.build_opts_from_macros(macros);
+    let extra_opts = cfg.build_extra_opts();
     let stylesheet_header = KATEX_HEADER.to_owned();
     let rendered = raw_contents
         .iter()
         .map(|raw_content| {
-            process_chapter(
+            process_chapter_prerender(
                 (*raw_content).to_owned(),
                 inline_opts.clone(),
                 display_opts.clone(),
@@ -247,7 +248,7 @@ fn test_katex_rendering_vmatrix() {
 
     let math_expr = r"\begin{vmatrix}a&b\\c&d\end{vmatrix}";
     let cfg = KatexConfig::default();
-    let (_, display_opts, _) = cfg.build_opts_from_macros(HashMap::new());
+    let (_, display_opts) = cfg.build_opts_from_macros(HashMap::new());
     let _ = katex::render_with_opts(math_expr, display_opts).unwrap();
 }
 
