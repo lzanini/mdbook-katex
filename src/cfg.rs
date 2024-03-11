@@ -96,7 +96,7 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
     }
 
     /// From `root`, load macros and generate configuration options
-    /// `(inline_opts, display_opts, extra_opts)`.
+    /// `(inline_opts, display_opts)`.
     #[cfg(feature = "pre-render")]
     pub fn build_opts<P>(&self, root: P) -> (katex::Opts, katex::Opts)
     where
@@ -136,14 +136,13 @@ Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMa
         let display_opts = configure_katex_opts.display_mode(true).build().unwrap();
         (inline_opts, display_opts)
     }
-    /// generate `extraOpts`
+    /// Generate `extraOpts`
     pub fn build_extra_opts(&self) -> ExtraOpts {
-        let extra_opts = ExtraOpts {
+        ExtraOpts {
             include_src: self.include_src,
             block_delimiter: self.block_delimiter.clone(),
             inline_delimiter: self.inline_delimiter.clone(),
-        };
-        return extra_opts;
+        }
     }
 }
 

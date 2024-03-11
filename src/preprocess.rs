@@ -93,7 +93,7 @@ pub fn process_chapter_prerender(
         .join("")
 }
 
-/// KaTeX reander
+/// When `pre-render` is called but not enabled.
 #[cfg(not(feature = "pre-render"))]
 pub fn process_all_chapters_prerender(
     _: &Vec<String>,
@@ -104,7 +104,7 @@ pub fn process_all_chapters_prerender(
     panic!("Unable to pre-render. Please rebuild with the feature `pre-render`!")
 }
 
-/// KaTeX reander
+/// Pre-render all Katex equations.
 #[cfg(feature = "pre-render")]
 pub fn process_all_chapters_prerender(
     chapters: &Vec<String>,
@@ -132,7 +132,7 @@ pub fn process_all_chapters_prerender(
     contents
 }
 
-/// KaTeX reander
+/// Escaping all Katex equations.
 pub fn process_all_chapters_escaping(
     chapters: &Vec<String>,
     cfg: &KatexConfig,

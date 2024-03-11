@@ -41,18 +41,18 @@ pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts) -> String {
     rendered_content
 }
 
-/// Render a math block `item` into HTML following `opts`.
-pub fn escaping3(code: &str, delimiter: &Delimiter) -> String {
+/// Escape a math block `item` into a delimited string.
+pub fn escaping3(item: &str, delimiter: &Delimiter) -> String {
     let mut result = String::new();
     escaping(&delimiter.left, &mut result);
-    escaping(code, &mut result);
+    escaping(item, &mut result);
     escaping(&delimiter.right, &mut result);
     result
 }
 
-/// Render a math block `item` into HTML following `opts`.
-pub fn escaping(code: &str, result: &mut String) {
-    for c in code.chars() {
+/// Escape the math block `item` to `result`.
+pub fn escaping(item: &str, result: &mut String) {
+    for c in item.chars() {
         match c {
             '_' => {
                 result.push_str("\\_");

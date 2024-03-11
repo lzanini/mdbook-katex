@@ -6,7 +6,7 @@
 mdBook-KaTeX is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTeX math expressions to HTML at build time.
 
 - Very fast page loading. Much faster than rendering equations in the browser.
-- No need for client-side JavaScript.
+- Pre-rendered KaTeX formulas, no need for client-side JavaScript.
 - Customization such as macros and delimiters.
 
 Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
@@ -20,13 +20,17 @@ Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
 
 First, install mdBook-KaTeX
 
-### **Non-Windows** users:
+### **Non-Windows** users
 
-  ```shell
-  cargo install mdbook-katex
-  ```
-### Windows users:
-  The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
+```shell
+cargo install mdbook-katex
+```
+
+### Windows users
+
+> The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
+>
+> Another way is [Escaping mode](#escaping-mode).
 
 Then, add the following line to your `book.toml` file
 
@@ -56,27 +60,28 @@ Math expressions will be rendered as HTML when running `mdbook build` or `mdbook
 Most [KaTeX options](https://katex.org/docs/options.html) are supported via the `katex` crate.
 Specify these options under `[preprocessor.katex]` in your `book.toml`:
 
-| Argument | Type |
-| :- | :- |
-| [`output`](https://katex.org/docs/options.html#:~:text=default-,output,-string) | `"html"`, `"mathml"`, or `"htmlAndMathml"` |
-| [`leqno`](https://katex.org/docs/options.html#:~:text=default-,leqno,-boolean) | `boolean` |
-| [`fleqn`](https://katex.org/docs/options.html#:~:text=LaTeX-,fleqn,-boolean) | `boolean` |
-| [`throw-on-error`](https://katex.org/docs/options.html#:~:text=package-,throwonerror,-boolean) | `boolean` |
-| [`error-color`](https://katex.org/docs/options.html#:~:text=errorColor-,errorcolor,-string) | `string` |
-| [`min-rule-thickness`](https://katex.org/docs/options.html#:~:text=state-,minrulethickness,-number) | `number` |
-| [`max-size`](https://katex.org/docs/options.html#:~:text=true-,maxsize,-number) | `number` |
-| [`max-expand`](https://katex.org/docs/options.html#:~:text=maxexpand) | `number` |
-| [`trust`](https://katex.org/docs/options.html#:~:text=LaTeX-,trust,-boolean) | `boolean` |
+| Argument                                                                                            | Type                                       |
+| :-------------------------------------------------------------------------------------------------- | :----------------------------------------- |
+| [`output`](https://katex.org/docs/options.html#:~:text=default-,output,-string)                     | `"html"`, `"mathml"`, or `"htmlAndMathml"` |
+| [`leqno`](https://katex.org/docs/options.html#:~:text=default-,leqno,-boolean)                      | `boolean`                                  |
+| [`fleqn`](https://katex.org/docs/options.html#:~:text=LaTeX-,fleqn,-boolean)                        | `boolean`                                  |
+| [`throw-on-error`](https://katex.org/docs/options.html#:~:text=package-,throwonerror,-boolean)      | `boolean`                                  |
+| [`error-color`](https://katex.org/docs/options.html#:~:text=errorColor-,errorcolor,-string)         | `string`                                   |
+| [`min-rule-thickness`](https://katex.org/docs/options.html#:~:text=state-,minrulethickness,-number) | `number`                                   |
+| [`max-size`](https://katex.org/docs/options.html#:~:text=true-,maxsize,-number)                     | `number`                                   |
+| [`max-expand`](https://katex.org/docs/options.html#:~:text=maxexpand)                               | `number`                                   |
+| [`trust`](https://katex.org/docs/options.html#:~:text=LaTeX-,trust,-boolean)                        | `boolean`                                  |
 
 There are also extra options to configure the behaviour of the preprocessor:
 
-| Option | Description |
-| :- | :- |
-| `no-css` | Do not inject KaTeX stylesheet link (See [Self-host KaTeX CSS and fonts](#self-host-katex-css-and-fonts)) |
-| `macros` | Path to macros file (see [Custom macros](#custom-macros)) |
-| `include-src` | Include math expressions source code (See [Including math Source](#including-math-source)) |
-| `block-delimiter` | See [Custom delimiter](#custom-delimiter) |
-| `inline-delimiter` | See [Custom delimiter](#custom-delimiter) |
+| Option             | Description                                                                                               |
+| :----------------- | :-------------------------------------------------------------------------------------------------------- |
+| `no-css`           | Do not inject KaTeX stylesheet link (See [Self-host KaTeX CSS and fonts](#self-host-katex-css-and-fonts)) |
+| `macros`           | Path to macros file (see [Custom macros](#custom-macros))                                                 |
+| `include-src`      | Include math expressions source code (See [Including math Source](#including-math-source))                |
+| `block-delimiter`  | See [Custom delimiter](#custom-delimiter)                                                                 |
+| `inline-delimiter` | See [Custom delimiter](#custom-delimiter)                                                                 |
+| `pre-render`       | See [Escaping mode](#escaping-mode)                                                                       |
 
 For example, the default configuration:
 
@@ -98,6 +103,7 @@ no-css = false
 include-src = false
 block-delimiter = { left = "$$", right = "$$" }
 inline-delimiter = { left = "$", right = "$" }
+pre-render = false
 ```
 
 ## Self-host KaTeX CSS and fonts
@@ -189,3 +195,36 @@ Note that the double backslash above are just used to escape `\` in the TOML for
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
 
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality (matrix, ...) , all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
+
+## Escaping mode
+
+"Escaping mode" is a beta feature that escapes the string needed for a formula in advance so that it remains the original formula after the md processor. This mode requires client-side js. May be useful for those who have problems with quickjs.
+
+Disable pre-render to use "Escaping mode". Don't forget to include `katex.js` (you can include it in [index.hbs](https://rust-lang.github.io/mdBook/format/theme/index-hbs.html)).
+
+```toml
+[preprocessor.katex]
+pre-render = false
+
+[output.html]
+theme = "theme" # use theme/index.hbs
+```
+
+A example index.hbs:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/katex@latest/dist/katex.min.css">
+<script defer src="https://unpkg.com/katex@latest/dist/katex.min.js"></script>
+<script defer src="https://unpkg.com/katex@latest/dist/contrib/auto-render.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$', right: '$', display: false },
+    ],
+  });
+});
+</script>
+```
