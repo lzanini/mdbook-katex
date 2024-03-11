@@ -78,7 +78,7 @@ pub fn process_chapter_prerender(
     stylesheet_header: &str,
     extra_opts: &ExtraOpts,
 ) -> String {
-    get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
+    get_render_tasks(raw_content, stylesheet_header, extra_opts)
         .into_par_iter()
         .map(|rend| match rend {
             Render::Text(t) => t.into(),
@@ -144,7 +144,7 @@ pub fn process_all_chapters_escaping(
     let contents: Vec<_> = chapters
         .into_par_iter()
         .rev()
-        .map(|raw_content| process_chapter_escaping(&raw_content, &extra_opts, stylesheet_header))
+        .map(|raw_content| process_chapter_escaping(raw_content, &extra_opts, stylesheet_header))
         .collect();
 
     contents
@@ -156,7 +156,7 @@ pub fn process_chapter_escaping(
     extra_opts: &ExtraOpts,
     stylesheet_header: &str,
 ) -> String {
-    get_render_tasks(&raw_content, &stylesheet_header, &extra_opts)
+    get_render_tasks(raw_content, stylesheet_header, extra_opts)
         .into_par_iter()
         .map(|rend| match rend {
             Render::Text(t) => t.into(),
