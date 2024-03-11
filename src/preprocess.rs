@@ -128,7 +128,7 @@ pub fn get_render_tasks<'a>(
         }
     }
 
-    if raw_content.len() - 1 > checkpoint {
+    if raw_content.len() > checkpoint {
         rendering.push(Render::Text(&raw_content[checkpoint..raw_content.len()]));
     }
     rendering
