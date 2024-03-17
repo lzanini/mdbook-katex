@@ -1,22 +1,9 @@
 //! Render KaTeX math block to HTML
 
-use crate::scan::Delimiter;
-#[cfg(feature = "pre-render")]
 use {crate::preprocess::ExtraOpts, katex::Opts};
-
-/// A render job for `process_chapter`.
-pub enum Render<'a> {
-    /// No need to render.
-    Text(&'a str),
-    /// A render task for a math inline block.
-    InlineTask(&'a str),
-    /// A render task for a math display block.
-    DisplayTask(&'a str),
-}
 
 /// Render a math block `item` into HTML following `opts`.
 /// Wrap result in `<data>` tag if `extra_opts.include_src`.
-#[cfg(feature = "pre-render")]
 pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts) -> String {
     let mut rendered_content = String::new();
 
@@ -39,33 +26,4 @@ pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts) -> String {
     }
 
     rendered_content
-}
-
-/// Escape a math block `item` into a delimited string.
-pub fn escaping3(item: &str, delimiter: &Delimiter) -> String {
-    let mut result = String::new();
-    escaping(&delimiter.left, &mut result);
-    escaping(item, &mut result);
-    escaping(&delimiter.right, &mut result);
-    result
-}
-
-/// Escape the math block `item` to `result`.
-pub fn escaping(item: &str, result: &mut String) {
-    for c in item.chars() {
-        match c {
-            '_' => {
-                result.push_str("\\_");
-            }
-            '*' => {
-                result.push_str("\\*");
-            }
-            '\\' => {
-                result.push_str("\\\\");
-            }
-            _ => {
-                result.push(c);
-            }
-        }
-    }
 }

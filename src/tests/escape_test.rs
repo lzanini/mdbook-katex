@@ -11,13 +11,13 @@ fn test_render_with_cfg(raw_contents: &[&str], cfg: KatexConfig) -> (String, Vec
     let stylesheet_header = KATEX_HEADER.to_owned();
     let rendered = raw_contents
         .iter()
-        .map(|raw_content| process_chapter_escaping(raw_content, &extra_opts, &stylesheet_header))
+        .map(|raw_content| process_chapter_escape(raw_content, &extra_opts, &stylesheet_header))
         .collect();
     (stylesheet_header, rendered)
 }
 
 #[test]
-fn test_escaping_without_math() {
+fn test_escape_without_math() {
     let raw_content = r"Some text, and more text.";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header + raw_content;
@@ -25,7 +25,7 @@ fn test_escaping_without_math() {
 }
 
 #[test]
-fn test_dollar_escaping() {
+fn test_dollar_escape() {
     let raw_content = r"Some text, \$\$ and more text.";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header + raw_content;
@@ -33,7 +33,7 @@ fn test_dollar_escaping() {
 }
 
 #[test]
-fn test_escaping_with_math() {
+fn test_escape_with_math() {
     let raw_content = r"A simple fomula, $\sum_{n=1}^\infty \frac{1}{n^2} = \frac{\pi^2}{6}$.";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header
@@ -42,7 +42,7 @@ fn test_escaping_with_math() {
 }
 
 #[test]
-fn test_escaping_underscore() {
+fn test_escape_underscore() {
     let raw_content = r"A simple `f_f_f`, f_f_f, f`f$f_$f_` fomula, $\sum_{n=1}^\infty\\$.";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header
@@ -51,7 +51,7 @@ fn test_escaping_underscore() {
 }
 
 #[test]
-fn test_escaping_vmatrix() {
+fn test_escape_vmatrix() {
     let raw_content = r"$$\begin{vmatrix}a&b\\c&d\end{vmatrix}$$";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header + r"$$\\begin{vmatrix}a&b\\\\c&d\\end{vmatrix}$$";

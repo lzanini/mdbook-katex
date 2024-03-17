@@ -1,4 +1,4 @@
-use crate::{cfg::*, preprocess::*, scan::*};
+use crate::{cfg::*, cfg_render::*, preprocess::*, preprocess_render::*, scan::*};
 
 use mdbook::preprocess::Preprocessor;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
