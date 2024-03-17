@@ -11,7 +11,7 @@ There are two working modes:
     - no client-side JavaScript required,
     - very fast page load,
     - customizable macros and separators.
-- [Escape mode](#escape-mode) (experimental): escapes math expressions to be rendered using either katex.js or MathJax in the browser. May be useful if having problems building mdBook-KaTeX with quickjs.
+- [Escape mode](#escape-mode-experimental) (experimental): escapes math expressions to be rendered using either katex.js or MathJax in the browser. May be useful if having problems building mdBook-KaTeX with quickjs.
 
 Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
 [List of LaTeX functions supported by KaTeX](https://katex.org/docs/supported.html).
@@ -34,7 +34,7 @@ cargo install mdbook-katex
 
 The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
 
-Another way is [Escape mode](#escape-mode).
+Another way is [Escape mode](#escape-mode-experimental).
 
 ### Basic setup
 
@@ -92,7 +92,7 @@ There are also extra options to configure the behaviour of the preprocessor:
 | `include-src`      | Include math expressions source code (See [Including math Source](#including-math-source))                |
 | `block-delimiter`  | See [Custom delimiter](#custom-delimiter)                                                                 |
 | `inline-delimiter` | See [Custom delimiter](#custom-delimiter)                                                                 |
-| `pre-render`       | See [Escape mode](#escape-mode)                                                                           |
+| `pre-render`       | See [Escape mode](#escape-mode-experimental)                                                                           |
 
 For example, the default configuration:
 
