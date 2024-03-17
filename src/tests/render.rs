@@ -1,5 +1,4 @@
 use super::*;
-use crate::{cfg_render::*, preprocess_render::*};
 
 fn test_render(raw_content: &str) -> (String, String) {
     let (stylesheet_header, mut rendered) = test_render_with_macro(&[raw_content], HashMap::new());

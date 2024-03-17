@@ -3,6 +3,11 @@ use katex::Opts;
 
 use super::*;
 
+pub use {cfg::*, preprocess::*};
+
+mod cfg;
+mod preprocess;
+
 /// Render a math block `item` into HTML following `opts`.
 /// Wrap result in `<data>` tag if `extra_opts.include_src`.
 pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts) -> String {

@@ -12,9 +12,6 @@ pub fn process_all_chapters_prerender(
     panic!("Pre-render is unavailable because this `mdbook-katex` program does not have the `pre-render` feature enabled, only escaping mode is available, and you can set `pre-render = false` to enable it. If you do need `pre-render` mode, you need to add the `pre-render` feature and recompile. See the README at <https://github.com/lzanini/mdbook-katex/blob/master/README.md>.")
 }
 
-#[cfg(feature = "pre-render")]
-use crate::preprocess_render::process_all_chapters_prerender;
-
 /// Header that points to CDN for the KaTeX stylesheet.
 pub const KATEX_HEADER: &str = r#"<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 

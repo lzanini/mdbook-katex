@@ -14,7 +14,7 @@ fn test_support_html() {
     assert!(preprocessor.supports_renderer("other_renderer"))
 }
 
-mod escape_test;
+mod escape;
 
 #[cfg(feature = "pre-render")]
-mod render_test;
+mod render;
