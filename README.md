@@ -3,12 +3,15 @@
 [![Crates.io version](https://img.shields.io/crates/v/mdbook-katex)](https://crates.io/crates/mdbook-katex)
 ![Crates.io downloads](https://img.shields.io/crates/d/mdbook-katex)
 
-mdBook-KaTeX is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), use KaTeX to render LaTeX math expressions.
+mdBook-KaTeX is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), using KaTeX to render LaTeX math expressions.
 
 There are two working modes:
 
-- [Pre-render Mode(default)](#pre-render-mode-default): pre-renders KaTeX formulas at build time, no client-side JavaScript required, very fast page load, customizable macros and separators.
-- [Escape mode](#escape-mode): renders formulas using katex.js, requires client-side JavaScript, and use some tricks to fix its rendering. May be useful for those who have problems with quickjs.
+- [Pre-render Mode](#pre-render-mode-default) (default): pre-renders math expressions at build time using KaTeX,
+    - no client-side JavaScript required,
+    - very fast page load,
+    - customizable macros and separators.
+- [Escape mode](#escape-mode) (experimental): escapes math expressions to be rendered using either katex.js or MathJax in the browser. May be useful if having problems building mdBook-KaTeX with quickjs.
 
 Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
 [List of LaTeX functions supported by KaTeX](https://katex.org/docs/supported.html).
@@ -204,11 +207,11 @@ Note that the double backslash above are just used to escape `\` in the TOML for
 
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality (matrix, ...) , all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
 
-## Escape mode
+## Escape mode (experimental)
 
-"Escape mode" is a beta feature that escapes the string needed for a formula in advance so that it remains the original formula after the markdown processor.
+Escapes the string needed for a formula in advance so that it remains the original formula after the markdown processor.
 
-Disable pre-render to use "Escape mode". Don't forget to include `katex.js` (you can include it in head.hbs, see [index.hbs](https://rust-lang.github.io/mdBook/format/theme/index-hbs.html)).
+Disable pre-render to use "Escape mode", and provide your client-side rendering library of choice. An example with `katex.js` included in `head.hbs` (see [index.hbs](https://rust-lang.github.io/mdBook/format/theme/index-hbs.html)) is provided below.
 
 ```toml
 [preprocessor.katex]
@@ -220,7 +223,9 @@ no-css = true
 theme = "theme" # use theme/head.hbs
 ```
 
-A example head.hbs:
+Note that the [KaTeX Options](#katex-options) are ignored in escape mode.
+
+An example `head.hbs`:
 
 ```html
 <link rel="stylesheet" href="https://unpkg.com/katex@latest/dist/katex.min.css">
