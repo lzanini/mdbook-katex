@@ -1,4 +1,4 @@
-//! Configurations for preprocessing KaTeX.
+//! Extra configurations for prerendering KaTeX.
 
 use std::{
     collections::HashMap,

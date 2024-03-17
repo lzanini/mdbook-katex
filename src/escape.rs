@@ -1,4 +1,4 @@
-//! Preprocess math blocks using KaTeX for mdBook.
+//! Escaping math blocks to fix KaTeX rendering.
 
 use crate::scan::Delimiter;
 
@@ -13,6 +13,7 @@ pub enum Render<'a> {
 }
 
 /// Escape a math block `item` into a delimited string.
+/// Delimiter also need to be escaped, e.g. `\(,\)` and `\[,\]`.
 pub fn escape_math_with_delimiter(item: &str, delimiter: &Delimiter) -> String {
     let mut result = String::new();
     escape_math(&delimiter.left, &mut result);
@@ -21,7 +22,10 @@ pub fn escape_math_with_delimiter(item: &str, delimiter: &Delimiter) -> String {
     result
 }
 
-/// Escape the math block `item` to `result`.
+/// This is a amazing but useful little trick.
+/// Mdbook's markdown engine will parse a part of KaTeX formula into HTML, e.g. `$[x^n](f + g)$`.
+/// So if we escape the math formula in advance so that it passes through the markdown
+/// engine as the original formula, it will be rendered correctly by katex.js.
 pub fn escape_math(item: &str, result: &mut String) {
     for c in item.chars() {
         match c {

@@ -1,4 +1,4 @@
-//! Preprocessing with KaTeX.
+//! Preprocessing and prerendering with KaTeX.
 
 use std::borrow::Cow;
 
@@ -11,7 +11,7 @@ use crate::{
     render::render,
 };
 
-/// Pre-render all Katex equations.
+/// Render all Katex equations.
 pub fn process_all_chapters_prerender(
     chapters: &Vec<String>,
     cfg: &KatexConfig,

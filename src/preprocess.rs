@@ -1,4 +1,4 @@
-//! Preprocessing with KaTeX.
+//! Preprocessing and escaping with KaTeX.
 use std::borrow::Cow;
 
 use mdbook::{
@@ -26,7 +26,6 @@ pub fn process_all_chapters_prerender(
     panic!("Pre-render is unavailable because this `mdbook-katex` program does not have the `pre-render` feature enabled, only escaping mode is available, and you can set `pre-render = false` to enable it. If you do need `pre-render` mode, you need to add the `pre-render` feature and recompile. See the README at <https://github.com/lzanini/mdbook-katex/blob/master/README.md>.")
 }
 
-/// When `pre-render` is called but not enabled.
 #[cfg(feature = "pre-render")]
 use crate::preprocess_render::process_all_chapters_prerender;
 
