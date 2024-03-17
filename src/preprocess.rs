@@ -23,7 +23,7 @@ pub fn process_all_chapters_prerender(
     _: &str,
     _: &PreprocessorContext,
 ) -> Vec<String> {
-    panic!("Unable to pre-render. Please rebuild with the feature `pre-render`!")
+    panic!("Pre-render is unavailable because this `mdbook-katex` program does not have the `pre-render` feature enabled, only escaping mode is available, and you can set `pre-render = false` to enable it. If you do need `pre-render` mode, you need to add the `pre-render` feature and recompile. See the README at <https://github.com/lzanini/mdbook-katex/blob/master/README.md>.")
 }
 
 /// When `pre-render` is called but not enabled.
