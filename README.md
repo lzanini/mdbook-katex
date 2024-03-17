@@ -3,11 +3,12 @@
 [![Crates.io version](https://img.shields.io/crates/v/mdbook-katex)](https://crates.io/crates/mdbook-katex)
 ![Crates.io downloads](https://img.shields.io/crates/d/mdbook-katex)
 
-mdBook-KaTeX is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), pre-rendering LaTeX math expressions to HTML at build time.
+mdBook-KaTeX is a preprocessor for [mdBook](https://github.com/rust-lang/mdBook), use KaTeX to render LaTeX math expressions.
 
-- Very fast page loading. Much faster than rendering equations in the browser.
-- Pre-rendered KaTeX formulas, no need for client-side JavaScript.
-- Customization such as macros and delimiters.
+There are two working modes:
+
+- [Pre-render Mode(default)](#pre-render-mode-default): pre-renders KaTeX formulas at build time, no client-side JavaScript required, very fast page load, customizable macros and separators.
+- [Escape mode](#escape-mode): renders formulas using katex.js, requires client-side JavaScript, and use some tricks to fix its rendering. May be useful for those who have problems with quickjs.
 
 Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
 [List of LaTeX functions supported by KaTeX](https://katex.org/docs/supported.html).
@@ -28,9 +29,11 @@ cargo install mdbook-katex
 
 ### Windows users
 
-> The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
->
-> Another way is [Escaping mode](#escaping-mode).
+The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
+
+Another way is [Escape mode](#escape-mode).
+
+### Basic setup
 
 Then, add the following line to your `book.toml` file
 
@@ -55,7 +58,12 @@ and a regular \$ symbol.
 
 Math expressions will be rendered as HTML when running `mdbook build` or `mdbook serve` as usual.
 
-## KaTeX options
+## Pre-render mode (default)
+
+Pre-rendering uses [the katex crate](https://github.com/xu-cheng/katex-rs).
+[List of LaTeX functions supported by KaTeX](https://katex.org/docs/supported.html).
+
+### KaTeX options
 
 Most [KaTeX options](https://katex.org/docs/options.html) are supported via the `katex` crate.
 Specify these options under `[preprocessor.katex]` in your `book.toml`:
@@ -81,7 +89,7 @@ There are also extra options to configure the behaviour of the preprocessor:
 | `include-src`      | Include math expressions source code (See [Including math Source](#including-math-source))                |
 | `block-delimiter`  | See [Custom delimiter](#custom-delimiter)                                                                 |
 | `inline-delimiter` | See [Custom delimiter](#custom-delimiter)                                                                 |
-| `pre-render`       | See [Escaping mode](#escaping-mode)                                                                       |
+| `pre-render`       | See [Escape mode](#escape-mode)                                                                           |
 
 For example, the default configuration:
 
@@ -103,10 +111,10 @@ no-css = false
 include-src = false
 block-delimiter = { left = "$$", right = "$$" }
 inline-delimiter = { left = "$", right = "$" }
-pre-render = false
+pre-render = true
 ```
 
-## Self-host KaTeX CSS and fonts
+### Self-host KaTeX CSS and fonts
 
 KaTeX requires a stylesheet and fonts to render correctly.
 
@@ -123,7 +131,7 @@ and manually add the CSS and fonts to your mdBook project before building it.
 
 See [mdBook-KaTeX Static CSS Example](https://github.com/SichangHe/mdbook_katex_static_css) for an automated example.
 
-## Custom macros
+### Custom macros
 
 Custom LaTeX macros must be defined in a `.txt` file, according to the following pattern
 
@@ -147,7 +155,7 @@ These macros can then be used in your `.md` files
 $$ \grad f(x) \in \R{n}{p} $$
 ```
 
-## Including math source
+### Including math source
 
 This option is added so users can have a convenient way to copy the source code of math expressions when they view the book.
 
@@ -177,7 +185,7 @@ For more information about adding custom CSS and JavaScript in mdBook, see [addi
 
 If you need more information about this feature, please check the issues or file a new issue.
 
-## Custom delimiter
+### Custom delimiter
 
 To change the delimiters for math expressions, set the `block-delimiter` and `inline-delimiter` under `[preprocessor.katex]`.
 For example, to use `\(`and `\)` for inline math and `\[` and `\]` for math block, set
@@ -190,27 +198,29 @@ inline-delimiter = { left = "\\(", right = "\\)" }
 
 Note that the double backslash above are just used to escape `\` in the TOML format.
 
-## Caveats
+### Caveats
 
 `$\backslash$` does not work, but you can use `$\setminus$` instead.
 
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality (matrix, ...) , all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
 
-## Escaping mode
+## Escape mode
 
-"Escaping mode" is a beta feature that escapes the string needed for a formula in advance so that it remains the original formula after the md processor. This mode requires client-side js. May be useful for those who have problems with quickjs.
+"Escape mode" is a beta feature that escapes the string needed for a formula in advance so that it remains the original formula after the markdown processor.
 
-Disable pre-render to use "Escaping mode". Don't forget to include `katex.js` (you can include it in [index.hbs](https://rust-lang.github.io/mdBook/format/theme/index-hbs.html)).
+Disable pre-render to use "Escape mode". Don't forget to include `katex.js` (you can include it in head.hbs, see [index.hbs](https://rust-lang.github.io/mdBook/format/theme/index-hbs.html)).
 
 ```toml
 [preprocessor.katex]
+after = ["links"]
 pre-render = false
+no-css = true
 
 [output.html]
-theme = "theme" # use theme/index.hbs
+theme = "theme" # use theme/head.hbs
 ```
 
-A example index.hbs:
+A example head.hbs:
 
 ```html
 <link rel="stylesheet" href="https://unpkg.com/katex@latest/dist/katex.min.css">
