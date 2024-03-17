@@ -1,15 +1,7 @@
-//! Preprocessing and prerendering with KaTeX.
-
-use std::borrow::Cow;
-
+//! Preprocessing and pre-rendering with KaTeX.
 use katex::Opts;
-use mdbook::preprocess::PreprocessorContext;
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-use crate::{
-    cfg::KatexConfig, escape::Render, preprocess::get_render_tasks, preprocess::ExtraOpts,
-    render::render,
-};
+use super::*;
 
 /// Render all Katex equations.
 pub fn process_all_chapters_prerender(

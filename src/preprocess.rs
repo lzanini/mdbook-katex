@@ -1,19 +1,5 @@
 //! Preprocessing and escaping with KaTeX.
-use std::borrow::Cow;
-
-use mdbook::{
-    book::Book,
-    errors::Result,
-    preprocess::{Preprocessor, PreprocessorContext},
-    BookItem,
-};
-use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-
-use crate::{
-    cfg::{get_config, KatexConfig},
-    escape::{escape_math_with_delimiter, Render},
-    scan::{Delimiter, Event, Scan},
-};
+use super::*;
 
 /// When `pre-render` is called but not enabled.
 #[cfg(not(feature = "pre-render"))]
@@ -117,6 +103,16 @@ pub fn process_chapter_escape(
         })
         .collect::<Vec<Cow<_>>>()
         .join("")
+}
+
+/// A render job for chapter processing.
+pub enum Render<'a> {
+    /// No need to render.
+    Text(&'a str),
+    /// A render task for a math inline block.
+    InlineTask(&'a str),
+    /// A render task for a math display block.
+    DisplayTask(&'a str),
 }
 
 /// Find all the `Render` tasks in `raw_content`.

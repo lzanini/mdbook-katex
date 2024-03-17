@@ -1,6 +1,7 @@
 //! Render KaTeX math block to HTML
+use katex::Opts;
 
-use {crate::preprocess::ExtraOpts, katex::Opts};
+use super::*;
 
 /// Render a math block `item` into HTML following `opts`.
 /// Wrap result in `<data>` tag if `extra_opts.include_src`.

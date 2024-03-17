@@ -1,13 +1,5 @@
-//! Extra configurations for prerendering KaTeX.
-
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::Read,
-    path::{Path, PathBuf},
-};
-
-use crate::cfg::KatexConfig;
+//! Extra configurations for pre-rendering KaTeX.
+use super::*;
 
 impl KatexConfig {
     /// Configured output type.

@@ -1,8 +1,5 @@
 //! Configurations for preprocessing KaTeX.
-
-use serde_derive::{Deserialize, Serialize};
-
-use crate::{preprocess::ExtraOpts, scan::Delimiter};
+use super::*;
 
 /// Configuration for KaTeX preprocessor,
 /// including options for `katex-rs` and feature options.
@@ -63,13 +60,13 @@ impl Default for KatexConfig {
             macros: None,
             block_delimiter: Delimiter::same("$$".into()),
             inline_delimiter: Delimiter::same("$".into()),
-            pre_render: cfg!(feature = "pre-render"),
+            pre_render: true,
         }
     }
 }
 
 impl KatexConfig {
-    /// Generate `extraOpts`
+    /// Generate extra options for the preprocessor.
     pub fn build_extra_opts(&self) -> ExtraOpts {
         ExtraOpts {
             include_src: self.include_src,

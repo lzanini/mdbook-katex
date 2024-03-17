@@ -1,16 +1,6 @@
 //! Escaping math blocks to fix KaTeX rendering.
 
-use crate::scan::Delimiter;
-
-/// A render job for `process_chapter`.
-pub enum Render<'a> {
-    /// No need to render.
-    Text(&'a str),
-    /// A render task for a math inline block.
-    InlineTask(&'a str),
-    /// A render task for a math display block.
-    DisplayTask(&'a str),
-}
+use super::*;
 
 /// Escape a math block `item` into a delimited string.
 /// Delimiter also need to be escaped, e.g. `\(,\)` and `\[,\]`.
