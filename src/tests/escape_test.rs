@@ -1,4 +1,20 @@
+use mdbook::preprocess::Preprocessor;
+
 use crate::{cfg::*, preprocess::*};
+
+#[test]
+fn test_name() {
+    let pre = KatexProcessor;
+    let preprocessor: &dyn Preprocessor = &pre;
+    assert_eq!(preprocessor.name(), "katex")
+}
+
+#[test]
+fn test_support_html() {
+    let preprocessor = KatexProcessor;
+    assert!(preprocessor.supports_renderer("html"));
+    assert!(preprocessor.supports_renderer("other_renderer"))
+}
 
 fn test_render(raw_content: &str) -> (String, String) {
     let (stylesheet_header, mut rendered) =

@@ -1,21 +1,6 @@
 use crate::{cfg::*, cfg_render::*, preprocess::*, preprocess_render::*, scan::*};
 
-use mdbook::preprocess::Preprocessor;
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
-
-#[test]
-fn test_name() {
-    let pre = KatexProcessor;
-    let preprocessor: &dyn Preprocessor = &pre;
-    assert_eq!(preprocessor.name(), "katex")
-}
-
-#[test]
-fn test_support_html() {
-    let preprocessor = KatexProcessor;
-    assert!(preprocessor.supports_renderer("html"));
-    assert!(preprocessor.supports_renderer("other_renderer"))
-}
 
 fn test_render(raw_content: &str) -> (String, String) {
     let (stylesheet_header, mut rendered) = test_render_with_macro(&[raw_content], HashMap::new());
