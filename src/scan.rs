@@ -1,7 +1,5 @@
 //! Scan Markdown text and identify math block events.
-use std::collections::VecDeque;
-
-use serde_derive::{Deserialize, Serialize};
+use super::*;
 
 /// A pair of strings are delimiters.
 #[derive(Clone, Debug, Deserialize, Serialize)]

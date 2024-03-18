@@ -1,17 +1,12 @@
-//! Render KaTeX math block to HTML.
+//! Render KaTeX math block to HTML
 use katex::Opts;
 
-use crate::preprocess::ExtraOpts;
+use super::*;
 
-/// A render job for `process_chapter`.
-pub enum Render<'a> {
-    /// No need to render.
-    Text(&'a str),
-    /// A render task for a math inline block.
-    InlineTask(&'a str),
-    /// A render task for a math display block.
-    DisplayTask(&'a str),
-}
+pub use {cfg::*, preprocess::*};
+
+mod cfg;
+mod preprocess;
 
 /// Render a math block `item` into HTML following `opts`.
 /// Wrap result in `<data>` tag if `extra_opts.include_src`.

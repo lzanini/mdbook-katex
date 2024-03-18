@@ -2,9 +2,11 @@ use super::*;
 
 #[test]
 fn test_katex_rendering_vmatrix() {
+    use crate::cfg::KatexConfig;
+
     let math_expr = r"\begin{vmatrix}a&b\\c&d\end{vmatrix}";
     let cfg = KatexConfig::default();
-    let (_, display_opts, _) = cfg.build_opts_from_macros(HashMap::new());
+    let (_, display_opts) = cfg.build_opts_from_macros(HashMap::new());
     let _ = katex::render_with_opts(math_expr, display_opts).unwrap();
 }
 
