@@ -117,15 +117,21 @@ impl<'a> Scan<'a> {
         let byte = self.get_byte()?;
         self.inc();
         match byte {
-            b if b == self.block_delimiter.first() || b == self.inline_delimiter.first() => {
+            b if b == self.block_delimiter.first()
+                && self
+                    .block_delimiter
+                    .match_left(&self.bytes[(self.index - 1)..]) =>
+            {
                 self.index -= 1;
-                if self.block_delimiter.match_left(&self.bytes[self.index..]) {
-                    self.process_delimit(false)?;
-                } else if self.inline_delimiter.match_left(&self.bytes[self.index..]) {
-                    self.process_delimit(true)?;
-                } else {
-                    self.inc();
-                }
+                self.process_delimit(false)?;
+            }
+            b if b == self.inline_delimiter.first()
+                && self
+                    .inline_delimiter
+                    .match_left(&self.bytes[(self.index - 1)..]) =>
+            {
+                self.index -= 1;
+                self.process_delimit(true)?;
             }
             b'\\' => {
                 self.inc();
