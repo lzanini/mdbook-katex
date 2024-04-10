@@ -123,6 +123,9 @@ impl<'a> Scan<'a> {
                     self.process_delimit(false)?;
                 } else if self.inline_delimiter.match_left(&self.bytes[self.index..]) {
                     self.process_delimit(true)?;
+                } else if byte == b'`' {
+                    self.index += 1;
+                    self.process_backtick()?;
                 } else {
                     self.inc();
                 }

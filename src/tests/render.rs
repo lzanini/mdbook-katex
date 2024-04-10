@@ -146,6 +146,59 @@ fn test_rendering_delimiter_in_inline_code() {
 }
 
 #[test]
+fn test_rendering_delimiter_in_inline_code_when_inline_delimiter_starts_with_backtick() {
+    let raw_content = r"`` `$\omega$` ``";
+    let cfg = KatexConfig {
+        inline_delimiter: Delimiter {
+            left: "`$".into(),
+            right: "$`".into(),
+        },
+        ..KatexConfig::default()
+    };
+    let (stylesheet_header, mut rendered_content) =
+        test_render_with_cfg(&[raw_content], HashMap::new(), cfg);
+    let expected_output = stylesheet_header + raw_content;
+    debug_assert_eq!(expected_output, rendered_content.pop().unwrap());
+}
+
+#[test]
+fn test_rendering_delimiter_in_block_code_when_block_delimiter_starts_with_backtick() {
+    let raw_content = r#"````
+    ```math
+    $\omega$
+    ```
+    ````
+    "#;
+    let cfg = KatexConfig {
+        block_delimiter: Delimiter {
+            left: "```math".into(),
+            right: "```".into(),
+        },
+        ..KatexConfig::default()
+    };
+    let (stylesheet_header, mut rendered_content) =
+        test_render_with_cfg(&[raw_content], HashMap::new(), cfg);
+    let expected_output = stylesheet_header + raw_content;
+    debug_assert_eq!(expected_output, rendered_content.pop().unwrap());
+}
+
+#[test]
+fn test_rendering_delimiter_in_inline_code_when_block_delimiter_starts_with_backtick() {
+    let raw_content = r"`$\omega$`";
+    let cfg = KatexConfig {
+        block_delimiter: Delimiter {
+            left: "```math".into(),
+            right: "```".into(),
+        },
+        ..KatexConfig::default()
+    };
+    let (stylesheet_header, mut rendered_content) =
+        test_render_with_cfg(&[raw_content], HashMap::new(), cfg);
+    let expected_output = stylesheet_header + raw_content;
+    debug_assert_eq!(expected_output, rendered_content.pop().unwrap());
+}
+
+#[test]
 fn test_escaping_backtick() {
     let raw_content = r"\`$\omega$\`";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
