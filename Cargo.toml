@@ -18,8 +18,11 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 toml = "0.8"
-tracing = { version = "0.1", default_features = false }
+tracing = { version = "0.1", default_features = false, features = [
+    "attributes",
+] }
 tracing-subscriber = { version = "0.3", default_features = false, features = [
+    "ansi",
     "env-filter",
     "fmt",
 ] }

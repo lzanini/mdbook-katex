@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     collections::VecDeque,
     fs::File,
-    io::Read,
+    io::{stderr, Read},
     path::{Path, PathBuf},
 };
 
@@ -42,6 +42,8 @@ mod tests;
 #[doc(hidden)]
 pub fn init_tracing() {
     _ = tracing_subscriber::fmt()
+        .with_writer(stderr)
+        .with_ansi(true)
         .with_env_filter(
             EnvFilter::builder()
                 .with_default_directive(Level::INFO.into())

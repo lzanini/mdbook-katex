@@ -10,6 +10,7 @@ mod preprocess;
 
 /// Render a math block `item` into HTML following `opts`.
 /// Wrap result in `<data>` tag if `extra_opts.include_src`.
+#[instrument(skip(opts, extra_opts, display))]
 pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts, display: bool) -> String {
     let mut rendered_content = String::new();
 
@@ -32,9 +33,12 @@ pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts, display: bool) -> S
         Err(why) => {
             match why {
                 Error::JsExecError(why) => {
-                    warn!("Rendering failed: `{why}`, keeping the original content.")
+                    warn!("Rendering failed, keeping the original content: {why}")
                 }
-                _ => error!("Unexpected error: {why:?}, keeping the original content."),
+                _ => error!(
+                    ?why,
+                    "Unexpected rendering failure, keeping the original content."
+                ),
             }
             let delimiter = match display {
                 true => &extra_opts.block_delimiter,
