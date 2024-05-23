@@ -6,6 +6,8 @@ on:
       - "v*.*.*"
   release:
     types: [published]
+  workflow_dispatch:
+    # Manual trigger.
 
 jobs:
   msvc-windows-binary:
