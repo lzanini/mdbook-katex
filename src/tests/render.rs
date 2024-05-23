@@ -199,6 +199,22 @@ fn test_rendering_delimiter_in_inline_code_when_block_delimiter_starts_with_back
 }
 
 #[test]
+fn test_invalid_expr_inline() {
+    let raw_content = r"$\<$";
+    let (stylesheet_header, rendered_content) = test_render(raw_content);
+    let expected_output = stylesheet_header + raw_content;
+    debug_assert_eq!(expected_output, rendered_content);
+}
+
+#[test]
+fn test_invalid_expr_display() {
+    let raw_content = r"$$ \< $$";
+    let (stylesheet_header, rendered_content) = test_render(raw_content);
+    let expected_output = stylesheet_header + raw_content;
+    debug_assert_eq!(expected_output, rendered_content);
+}
+
+#[test]
 fn test_escaping_backtick() {
     let raw_content = r"\`$\omega$\`";
     let (stylesheet_header, rendered_content) = test_render(raw_content);

@@ -43,10 +43,10 @@ pub fn process_chapter_prerender(
         .map(|rend| match rend {
             Render::Text(t) => t.into(),
             Render::InlineTask(item) => {
-                render(item, inline_opts.clone(), extra_opts.clone()).into()
+                render(item, inline_opts.clone(), extra_opts.clone(), false).into()
             }
             Render::DisplayTask(item) => {
-                render(item, display_opts.clone(), extra_opts.clone()).into()
+                render(item, display_opts.clone(), extra_opts.clone(), true).into()
             }
         })
         .collect::<Vec<Cow<_>>>()

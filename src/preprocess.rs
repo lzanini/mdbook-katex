@@ -103,6 +103,7 @@ pub fn process_chapter_escape(
 }
 
 /// A render job for chapter processing.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Render<'a> {
     /// No need to render.
     Text(&'a str),
