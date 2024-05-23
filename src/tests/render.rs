@@ -1,3 +1,5 @@
+use std::os::macos::raw;
+
 use super::*;
 
 fn test_render(raw_content: &str) -> (String, String) {
@@ -200,6 +202,7 @@ fn test_rendering_delimiter_in_inline_code_when_block_delimiter_starts_with_back
 
 #[test]
 fn test_invalid_expr_inline() {
+    init_tracing();
     let raw_content = r"$\<$";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header + raw_content;
@@ -208,6 +211,7 @@ fn test_invalid_expr_inline() {
 
 #[test]
 fn test_invalid_expr_display() {
+    init_tracing();
     let raw_content = r"$$ \< $$";
     let (stylesheet_header, rendered_content) = test_render(raw_content);
     let expected_output = stylesheet_header + raw_content;

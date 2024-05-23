@@ -17,8 +17,16 @@ use mdbook::{
 };
 use rayon::iter::*;
 use serde_derive::{Deserialize, Serialize};
+use tracing::*;
+use tracing_subscriber::EnvFilter;
 
-use {cfg::*, escape::*, preprocess::*, render::*, scan::*};
+use {
+    cfg::*,
+    escape::*,
+    preprocess::*,
+    render::*,
+    scan::{Event, *},
+};
 
 pub mod cfg;
 pub mod escape;
@@ -30,3 +38,14 @@ pub mod render;
 
 #[cfg(test)]
 mod tests;
+
+#[doc(hidden)]
+pub fn init_tracing() {
+    _ = tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(Level::INFO.into())
+                .from_env_lossy(),
+        )
+        .try_init();
+}

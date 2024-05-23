@@ -32,9 +32,9 @@ pub fn render(item: &str, opts: Opts, extra_opts: ExtraOpts, display: bool) -> S
         Err(why) => {
             match why {
                 Error::JsExecError(why) => {
-                    eprintln!("Rendering failed: `{why}`, keeping the original content.")
+                    warn!("Rendering failed: `{why}`, keeping the original content.")
                 }
-                _ => eprintln!("Unexpected error: {why:?}, keeping the original content."),
+                _ => error!("Unexpected error: {why:?}, keeping the original content."),
             }
             let delimiter = match display {
                 true => &extra_opts.block_delimiter,

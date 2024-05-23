@@ -1,8 +1,9 @@
 use clap::{crate_version, Arg, ArgMatches, Command};
 use mdbook::errors::{Error, Result};
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
-use mdbook_katex::preprocess::KatexProcessor;
+use mdbook_katex::{init_tracing, preprocess::KatexProcessor};
 use std::io;
+use tracing::*;
 
 /// Parse CLI options.
 pub fn make_app() -> Command {
@@ -19,7 +20,7 @@ pub fn make_app() -> Command {
 /// Produce a warning on mdBook version mismatch.
 fn check_mdbook_version(version: &str) {
     if version != mdbook::MDBOOK_VERSION {
-        eprintln!(
+        warn!(
             "This mdbook-katex was built against mdbook v{}, \
             but we are being called from mdbook v{version}. \
             If you have any issue, this might be a reason.",
@@ -54,6 +55,8 @@ fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    init_tracing();
+
     // set up app
     let matches = make_app().get_matches();
     let pre = KatexProcessor;

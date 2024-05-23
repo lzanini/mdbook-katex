@@ -10,7 +10,7 @@ impl KatexConfig {
             "mathml" => katex::OutputType::Mathml,
             "htmlAndMathml" => katex::OutputType::HtmlAndMathml,
             other => {
-                eprintln!(
+                error!(
 "[preprocessor.katex]: `{other}` is not a valid choice for `output`! Please check your `book.toml`.
 Defaulting to `html`. Other valid choices for output are `mathml` and `htmlAndMathml`."
                 );
