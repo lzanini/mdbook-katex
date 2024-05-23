@@ -286,7 +286,7 @@ jobs:
         id: tagName
         run: |
           VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
-          echo "::set-output name=version::$VERSION"
+          echo "::set-output name=version::$VERSION-binaries"
 
       - name: Create a release
         uses: softprops/action-gh-release@v1
