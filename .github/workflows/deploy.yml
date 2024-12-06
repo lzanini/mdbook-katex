@@ -49,6 +49,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
+          name: x86_64-pc-windows
           path: mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-msvc.zip
 
   gnu-windows-binary:
@@ -91,6 +92,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
+          name: x86_64-pc-windows-gnu
           path: |
             mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-pc-windows-gnu.zip
 
@@ -130,6 +132,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
+          name: x86_64-unknown-linux-gnu
           path: |
             Cargo.lock
             mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
@@ -174,6 +177,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
+          name: x86_64-unknown-linux-musl
           path: |
             mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
 
@@ -213,6 +217,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
+          name: x86_64-apple-darwin
           path: |
             mdbook-katex-v${{ steps.tagName.outputs.version }}-x86_64-apple-darwin.tar.gz
   aarch64-macos-binary:
@@ -251,6 +256,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
+          name: aarch64-apple-darwin
           path: |
             mdbook-katex-v${{ steps.tagName.outputs.version }}-aarch64-apple-darwin.tar.gz
 
@@ -273,7 +279,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: "*"
+          merge-multiple: true
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
