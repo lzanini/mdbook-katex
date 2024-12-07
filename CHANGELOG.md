@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2](https://github.com/lzanini/mdbook-katex/compare/v0.9.1...v0.9.2) - 2024-12-07
+
+### Other
+
+- make new clippy happy
+- update dependency mdbook to v0.4.43;update other dependencies
+- attempt to fix upload-artifact not allowing reused name
+- bump download-artifact as well
+- bump upload-artifact to v4 so deployment runs
+
 ## [0.9.1](https://github.com/lzanini/mdbook-katex/compare/v0.9.0...v0.9.1) - 2024-11-07
 
 ### Fixed
