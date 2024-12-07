@@ -63,7 +63,7 @@ pub struct Scan<'a> {
     inline_delimiter: &'a Delimiter,
 }
 
-impl<'a> Iterator for Scan<'a> {
+impl Iterator for Scan<'_> {
     type Item = Event;
 
     fn next(&mut self) -> Option<Self::Item> {
