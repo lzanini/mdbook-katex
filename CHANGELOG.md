@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3](https://github.com/lzanini/mdbook-katex/compare/v0.9.2...v0.9.3) - 2025-02-18
+
+### Other
+
+- use mdbook_fork4ls v0.4.45 & its builtin parallelization
+
 ## [0.9.2](https://github.com/lzanini/mdbook-katex/compare/v0.9.1...v0.9.2) - 2024-12-07
 
 ### Other
