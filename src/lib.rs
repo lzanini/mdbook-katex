@@ -10,10 +10,9 @@ use std::{
 };
 
 use mdbook::{
-    book::Book,
+    book::{Book, ChapterMutThin},
     errors::Result,
     preprocess::{Preprocessor, PreprocessorContext},
-    BookItem,
 };
 use rayon::iter::*;
 use serde_derive::{Deserialize, Serialize};

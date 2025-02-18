@@ -609,9 +609,9 @@ dependencies = [
 
 [[package]]
 name = "mdbook_fork4ls"
-version = "0.4.43"
+version = "0.4.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a74e2f9a46663f406edbd02e5546c718f1a0702140ecd63808a345080e219b2d"
+checksum = "6545bd84ab7c3ac1e46e474a69b335f23d528c5268cad065364185c9a9f1e365"
 dependencies = [
  "anyhow",
  "chrono",

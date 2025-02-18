@@ -41,44 +41,28 @@ impl Preprocessor for KatexProcessor {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let header = if cfg.no_css { "" } else { KATEX_HEADER }.to_owned();
-        let mut chapters = Vec::with_capacity(book.sections.len());
-        book.for_each_mut(|item| {
-            if let BookItem::Chapter(chapter) = item {
-                chapters.push(chapter.content.clone());
-            }
-        });
+        let mut chapters = book.chapters_mut_thin();
 
-        let mut contents = if cfg.pre_render {
-            process_all_chapters_prerender(&chapters, &cfg, &header, ctx)
+        if cfg.pre_render {
+            process_all_chapters_prerender(&mut chapters, &cfg, &header, ctx);
         } else {
-            process_all_chapters_escape(&chapters, &cfg, &header, ctx)
-        };
-
-        book.for_each_mut(|item| {
-            if let BookItem::Chapter(chapter) = item {
-                chapter.content = contents.pop().expect("Chapter number mismatch.");
-            }
-        });
+            process_all_chapters_escape(&mut chapters, &cfg, &header, ctx);
+        }
         Ok(book)
     }
 }
 
 /// Escape all Katex equations.
 pub fn process_all_chapters_escape(
-    chapters: &Vec<String>,
+    chapters: &mut [ChapterMutThin],
     cfg: &KatexConfig,
     stylesheet_header: &str,
     _: &PreprocessorContext,
-) -> Vec<String> {
+) {
     let extra_opts = cfg.build_extra_opts();
-
-    let contents: Vec<_> = chapters
-        .into_par_iter()
-        .rev()
-        .map(|raw_content| process_chapter_escape(raw_content, &extra_opts, stylesheet_header))
-        .collect();
-
-    contents
+    chapters.into_par_iter().for_each(|chapter| {
+        *chapter.content = process_chapter_escape(chapter.content, &extra_opts, stylesheet_header);
+    });
 }
 
 /// Escape Katex equations.

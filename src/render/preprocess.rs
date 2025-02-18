@@ -5,29 +5,22 @@ use super::*;
 
 /// Render all Katex equations.
 pub fn process_all_chapters_prerender(
-    chapters: &Vec<String>,
+    chapters: &mut [ChapterMutThin],
     cfg: &KatexConfig,
     stylesheet_header: &str,
     ctx: &PreprocessorContext,
-) -> Vec<String> {
+) {
     let extra_opts = cfg.build_extra_opts();
     let (inline_opts, display_opts) = cfg.build_opts(&ctx.root);
-
-    let contents: Vec<_> = chapters
-        .into_par_iter()
-        .rev()
-        .map(|raw_content| {
-            process_chapter_prerender(
-                raw_content,
-                inline_opts.clone(),
-                display_opts.clone(),
-                stylesheet_header,
-                &extra_opts,
-            )
-        })
-        .collect();
-
-    contents
+    chapters.into_par_iter().for_each(|chapter| {
+        *chapter.content = process_chapter_prerender(
+            chapter.content,
+            inline_opts.clone(),
+            display_opts.clone(),
+            stylesheet_header,
+            &extra_opts,
+        );
+    });
 }
 
 /// Render Katex equations in a `Chapter` as HTML, and add the Katex CSS.
