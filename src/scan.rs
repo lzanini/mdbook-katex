@@ -112,7 +112,7 @@ impl<'a> Scan<'a> {
     /// - Start of delimiter => call `process_delimit`.
     /// - `\` => skip one byte.
     /// - `` ` `` => call `process_backtick`.
-    ///     Return `Err(())` if no more bytes to process.
+    ///   Return `Err(())` if no more bytes to process.
     fn process_byte(&mut self) -> Result<(), ()> {
         let byte = self.get_byte()?;
         self.inc();
