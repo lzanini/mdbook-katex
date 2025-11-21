@@ -27,21 +27,13 @@ tracing-subscriber = { version = "0.3.20", default-features = false, features = 
     "fmt",
 ] }
 rayon = "1.11"
-
-# Remember to modify the tests accordingly if you modify this.
-[target.'cfg(any(target_os = "macos", all(unix, target_arch = "x86_64"), all(windows, target_env = "gnu")))'.dependencies]
-katex = { version = "0.4.6", default-features = false, features = [
-    "duktape",
-], optional = true }
-
-[target.'cfg(not(any(target_os = "macos", all(unix, target_arch = "x86_64"), all(windows, target_env = "gnu"))))'.dependencies]
-katex = { version = "0.4.6", default-features = false, features = [
-    "duktape",
-], optional = true }
+katex = { version = "0.4.6", default-features = false, optional = true }
 
 [features]
-default = ["pre-render"]
-pre-render = ["katex"]
+default = ["quick-js"]
+pre-render = ["dep:katex"]
+quick-js = ["pre-render", "katex/quick-js"]
+duktape = ["pre-render", "katex/duktape"]
 
 [profile.release]
 opt-level = "z"

@@ -77,8 +77,13 @@ impl KatexConfig {
 }
 
 /// Extract configuration for katex preprocessor from `book_cfg`.
-pub fn get_config(book_cfg: &mdbook::Config) -> Result<KatexConfig, toml::de::Error> {
-    let cfg = match book_cfg.get("preprocessor.katex") {
+pub fn get_config(
+    book_cfg: &mdbook_preprocessor::config::Config,
+) -> Result<KatexConfig, toml::de::Error> {
+    let cfg = match book_cfg
+        .get::<toml::Value>("preprocessor.katex")
+        .unwrap_or_default()
+    {
         Some(raw) => raw.clone().try_into(),
         None => Ok(KatexConfig::default()),
     };

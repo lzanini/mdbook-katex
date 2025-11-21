@@ -9,11 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use mdbook::{
-    book::{Book, ChapterMutThin},
-    errors::Result,
-    preprocess::{Preprocessor, PreprocessorContext},
-};
+use mdbook_preprocessor::{book::Book, errors::Result, Preprocessor, PreprocessorContext};
 use rayon::iter::*;
 use serde_derive::{Deserialize, Serialize};
 use tracing::*;
@@ -23,7 +19,6 @@ use {
     cfg::*,
     escape::*,
     preprocess::*,
-    render::*,
     scan::{Event, *},
 };
 
@@ -34,6 +29,9 @@ pub mod scan;
 
 #[cfg(feature = "pre-render")]
 pub mod render;
+
+#[cfg(feature = "pre-render")]
+pub use render::*;
 
 #[cfg(test)]
 mod tests;

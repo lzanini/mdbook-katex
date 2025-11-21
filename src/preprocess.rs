@@ -4,7 +4,7 @@ use super::*;
 /// When `pre-render` is called but not enabled.
 #[cfg(not(feature = "pre-render"))]
 pub fn process_all_chapters_prerender(
-    _: &Vec<String>,
+    _: &mut Book,
     _: &KatexConfig,
     _: &str,
     _: &PreprocessorContext,
@@ -41,12 +41,11 @@ impl Preprocessor for KatexProcessor {
         // parse TOML config
         let cfg = get_config(&ctx.config)?;
         let header = if cfg.no_css { "" } else { KATEX_HEADER }.to_owned();
-        let mut chapters = book.chapters_mut_thin();
 
         if cfg.pre_render {
-            process_all_chapters_prerender(&mut chapters, &cfg, &header, ctx);
+            process_all_chapters_prerender(&mut book, &cfg, &header, ctx);
         } else {
-            process_all_chapters_escape(&mut chapters, &cfg, &header, ctx);
+            process_all_chapters_escape(&mut book, &cfg, &header, ctx);
         }
         Ok(book)
     }
@@ -54,14 +53,14 @@ impl Preprocessor for KatexProcessor {
 
 /// Escape all Katex equations.
 pub fn process_all_chapters_escape(
-    chapters: &mut [ChapterMutThin],
+    book: &mut Book,
     cfg: &KatexConfig,
     stylesheet_header: &str,
     _: &PreprocessorContext,
 ) {
     let extra_opts = cfg.build_extra_opts();
-    chapters.into_par_iter().for_each(|chapter| {
-        *chapter.content = process_chapter_escape(chapter.content, &extra_opts, stylesheet_header);
+    book.for_each_chapter_mut(|chapter| {
+        chapter.content = process_chapter_escape(&chapter.content, &extra_opts, stylesheet_header);
     });
 }
 
