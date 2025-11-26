@@ -207,6 +207,14 @@ Note that the double backslash above are just used to escape `\` in the TOML for
 
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality (matrix, ...) , all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
 
+### Build options (features)
+Katex supports multiple js backends: quick-js (default), duktape, and wasm-js.
+It is possible to build mdbook-katex with either quick-js (default) and duktape.
+
+```shell
+cargo install mdbook-katex --no-default-features --features duktape
+```
+
 ## Escape mode (experimental)
 
 Escapes the string needed for a formula in advance so that it remains the original formula after the markdown processor.
@@ -243,3 +251,4 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 ```
+
