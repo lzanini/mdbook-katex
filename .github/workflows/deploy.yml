@@ -31,7 +31,7 @@ jobs:
 
       - name: Build mdbook-katex
         run: |
-          cargo build --release
+          cargo build --no-default-features --features duktape --release
 
       - name: Get the version
         shell: bash
