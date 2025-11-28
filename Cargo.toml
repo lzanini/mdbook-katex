@@ -12,34 +12,28 @@ readme = "README.md"
 repository = "https://github.com/lzanini/mdbook-katex"
 
 [dependencies]
-clap = { version = "4.5", features = ["cargo"] }
-mdbook = { package = "mdbook_fork4ls", version = "0.4.48", default-features = false }
-serde = "1.0"
+clap = { version = "4.5.53", features = ["cargo"] }
+mdbook-preprocessor = {version = "0.5.1"}
+serde = "1.0.228"
 serde_derive = "1.0"
-serde_json = "1.0"
-toml = "0.8"
-tracing = { version = "0.1", default-features = false, features = [
+serde_json = "1.0.145"
+toml = "0.9.8"
+tracing = { version = "0.1.41", default-features = false, features = [
     "attributes",
 ] }
-tracing-subscriber = { version = "0.3", default-features = false, features = [
+tracing-subscriber = { version = "0.3.20", default-features = false, features = [
     "ansi",
     "env-filter",
     "fmt",
 ] }
-rayon = "1.10"
-
-# Remember to modify the tests accordingly if you modify this.
-[target.'cfg(any(target_os = "macos", all(unix, target_arch = "x86_64"), all(windows, target_env = "gnu")))'.dependencies]
-katex = { version = "0.4.6", optional = true }
-
-[target.'cfg(not(any(target_os = "macos", all(unix, target_arch = "x86_64"), all(windows, target_env = "gnu"))))'.dependencies]
-katex = { version = "0.4.6", default-features = false, features = [
-    "duktape",
-], optional = true }
+rayon = "1.11"
+katex = { version = "0.4.6", default-features = false, optional = true }
 
 [features]
-default = ["pre-render"]
-pre-render = ["katex"]
+default = ["quick-js"]
+pre-render = ["dep:katex"]
+quick-js = ["pre-render", "katex/quick-js"]
+duktape = ["pre-render", "katex/duktape"]
 
 [profile.release]
 opt-level = "z"

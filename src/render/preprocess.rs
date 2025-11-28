@@ -5,16 +5,17 @@ use super::*;
 
 /// Render all Katex equations.
 pub fn process_all_chapters_prerender(
-    chapters: &mut [ChapterMutThin],
+    book: &mut Book,
     cfg: &KatexConfig,
     stylesheet_header: &str,
     ctx: &PreprocessorContext,
 ) {
     let extra_opts = cfg.build_extra_opts();
     let (inline_opts, display_opts) = cfg.build_opts(&ctx.root);
-    chapters.into_par_iter().for_each(|chapter| {
-        *chapter.content = process_chapter_prerender(
-            chapter.content,
+
+    book.for_each_chapter_mut(|chapter| {
+        chapter.content = process_chapter_prerender(
+            &chapter.content,
             inline_opts.clone(),
             display_opts.clone(),
             stylesheet_header,

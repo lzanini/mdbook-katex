@@ -10,8 +10,8 @@ fn test_name() {
 #[test]
 fn test_support_html() {
     let preprocessor = KatexProcessor;
-    assert!(preprocessor.supports_renderer("html"));
-    assert!(preprocessor.supports_renderer("other_renderer"))
+    assert!(preprocessor.supports_renderer("html").unwrap());
+    assert!(preprocessor.supports_renderer("other_renderer").unwrap())
 }
 
 mod escape;

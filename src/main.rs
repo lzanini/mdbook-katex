@@ -1,7 +1,7 @@
 use clap::{crate_version, Arg, ArgMatches, Command};
-use mdbook::errors::{Error, Result};
-use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook_katex::{init_tracing, preprocess::KatexProcessor};
+use mdbook_preprocessor::errors::{Error, Result};
+use mdbook_preprocessor::{parse_input, Preprocessor};
 use std::io;
 use tracing::*;
 
@@ -19,12 +19,12 @@ pub fn make_app() -> Command {
 
 /// Produce a warning on mdBook version mismatch.
 fn check_mdbook_version(version: &str) {
-    if version != mdbook::MDBOOK_VERSION {
+    if version != mdbook_preprocessor::MDBOOK_VERSION {
         warn!(
             "This mdbook-katex was built against mdbook v{}, \
             but we are being called from mdbook v{version}. \
             If you have any issue, this might be a reason.",
-            mdbook::MDBOOK_VERSION,
+            mdbook_preprocessor::MDBOOK_VERSION,
         )
     }
 }
@@ -34,7 +34,7 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<()> 
     let renderer = sub_args
         .get_one::<String>("renderer")
         .expect("Required argument");
-    let supported = pre.supports_renderer(renderer);
+    let supported = pre.supports_renderer(renderer).unwrap_or(false);
     if supported {
         Ok(())
     } else {
@@ -46,7 +46,7 @@ fn handle_supports(pre: &dyn Preprocessor, sub_args: &ArgMatches) -> Result<()> 
 
 /// Preprocess `book` using `pre` and print it out.
 fn handle_preprocessing(pre: &dyn Preprocessor) -> Result<()> {
-    let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
+    let (ctx, book) = parse_input(io::stdin())?;
     check_mdbook_version(&ctx.mdbook_version);
 
     let processed_book = pre.run(&ctx, book)?;
