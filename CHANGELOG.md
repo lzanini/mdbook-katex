@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.10.0](https://github.com/lzanini/mdbook-katex/compare/v0.9.4...v0.10.0) - 2025-11-28
+
+### Other
+
+- Use mdbook v0.5.1 instead of mdbook_fork4ls ([#131](https://github.com/lzanini/mdbook-katex/pull/131))
 - update dependencies: toml to v0.9, rayon to 1.11
 - use mdbook-preprocessor v0.5.1 instead of mdbook_fork4ls (a fork of mdbook v0.4)
 - allow use of different js renderers of katex through features `quick-js` and `duktape`
