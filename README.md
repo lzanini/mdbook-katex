@@ -32,7 +32,9 @@ cargo install mdbook-katex
 
 ### Windows users
 
-The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality, otherwise, things such matrices will not work fine. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
+The recommended way is to download the latest `x86_64-pc-windows-gnu.zip` from [Releases](https://github.com/lzanini/mdbook-katex/releases) for the full functionality.
+
+Otherwise, building with the default feature may fail unless you have GCC, and you may only be able to [build with the `duktape` feature](#build-options-features) with limited features.
 
 Another way is [Escape mode](#escape-mode-experimental).
 
@@ -208,12 +210,15 @@ Note that the double backslash above are just used to escape `\` in the TOML for
 Only the x86_64 Linux, Windows GNU, and macOS builds have full functionality (matrix, ...) , all other builds have compromised capabilities. See [#39](https://github.com/lzanini/mdbook-katex/issues/39) for the reasons.
 
 ### Build options (features)
-Katex supports multiple js backends: quick-js (default), duktape, and wasm-js.
-It is possible to build mdbook-katex with either quick-js (default) and duktape.
+
+Katex supports multiple js backends: `quick-js` (default), `duktape`, and `wasm-js`.
+It is possible to build mdbook-katex with either `quick-js` (default) and `duktape`.
 
 ```shell
 cargo install mdbook-katex --no-default-features --features duktape
 ```
+
+Note that, for `duketape`, things such as matrices will not work. See [#67](https://github.com/lzanini/mdbook-katex/issues/67) for the reasons.
 
 ## Escape mode (experimental)
 
