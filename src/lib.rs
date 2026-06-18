@@ -1,11 +1,12 @@
 #![deny(missing_docs)]
 //! Preprocess math blocks using KaTeX for mdBook.
+use std::{borrow::Cow, collections::VecDeque, io::stderr};
+
+#[cfg(feature = "pre-render")]
 use std::{
-    borrow::Cow,
     collections::HashMap,
-    collections::VecDeque,
     fs::File,
-    io::{stderr, Read},
+    io::Read,
     path::{Path, PathBuf},
 };
 
