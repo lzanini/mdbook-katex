@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0-alpha.1](https://github.com/lzanini/mdbook-katex/compare/v0.10.0-alpha...v0.10.0-alpha.1) - 2026-06-18
+
+### Other
+
+- update mdbook-preprocessor
+- make MSVC build by switching to duktape
+
 ## [0.10.0](https://github.com/lzanini/mdbook-katex/compare/v0.9.4...v0.10.0) - 2025-11-28
 
 ### Other
