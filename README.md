@@ -1,5 +1,4 @@
 # mdBook-KaTeX
-(authored by human unless marked 🤖)
 
 [![Crates.io version](https://img.shields.io/crates/v/mdbook-katex)](https://crates.io/crates/mdbook-katex)
 ![Crates.io downloads](https://img.shields.io/crates/d/mdbook-katex)
@@ -139,7 +138,7 @@ hash-files = false
 
 and manually add the CSS and fonts to your mdBook project before building it.
 
-🤖 Put `katex.min.css` in the project root and its fonts in `theme/fonts/`.
+Put `katex.min.css` in the project root and its fonts in `theme/fonts/`.
 mdBook enables filename hashing by default in recent versions. Set
 `hash-files = false` to preserve the font filenames referenced by the KaTeX CSS.
 
@@ -265,3 +264,4 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 ```
+
