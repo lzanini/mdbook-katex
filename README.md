@@ -123,6 +123,9 @@ pre-render = true
 
 KaTeX requires a stylesheet and fonts to render correctly.
 
+🤖 Use KaTeX 0.16.4 CSS and fonts to match the bundled renderer.
+Newer KaTeX CSS can use different class names and break formula layout.
+
 By default, mdBook-KaTeX injects a KaTeX stylesheet link pointing to a CDN.
 
 If you want to self-host the CSS and fonts instead, you should specify in `book.toml`:
