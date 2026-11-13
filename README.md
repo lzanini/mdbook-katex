@@ -123,8 +123,13 @@ pre-render = true
 
 KaTeX requires a stylesheet and fonts to render correctly.
 
-🤖 Use KaTeX 0.16.4 CSS and fonts to match the bundled renderer.
-Newer KaTeX CSS can use different class names and break formula layout.
+🤖 Match the CSS and fonts to the KaTeX version used by your renderer.
+Released mdbook-katex uses KaTeX 0.16.4; the katex-rs migration uses 0.18.5.
+The example scripts and Rust downloader default to 0.16.4. Set the
+`KATEX_VERSION` environment variable to `0.18.5` when using the migration
+(for example, `KATEX_VERSION=0.18.5 python3 download_static_css.py`).
+Rerun the downloader after changing versions to replace CSS and fonts together.
+Mismatched versions can use different class names and break formula layout.
 
 By default, mdBook-KaTeX injects a KaTeX stylesheet link pointing to a CDN.
 
