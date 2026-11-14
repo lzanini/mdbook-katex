@@ -123,7 +123,7 @@ pre-render = true
 
 KaTeX requires a stylesheet and fonts to render correctly.
 
-🤖 Match the CSS and fonts to the KaTeX version used by your renderer.
+Match the CSS and fonts to the KaTeX version used by your renderer.
 Released mdbook-katex uses KaTeX 0.16.4; the katex-rs migration uses 0.18.5.
 The example scripts and Rust downloader default to 0.16.4. Set the
 `KATEX_VERSION` environment variable to `0.18.5` when using the migration
